@@ -7,9 +7,13 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class ChatServer {
-	ServerSocket serverSocket;
-	HashMap<Socket, DataOutputStream> clients; 
+	protected ServerSocket serverSocket;
+	protected static HashMap<String, Chatroom> chatrooms;
+	protected static HashMap<String, String> users;
+	
 	public ChatServer(int port) throws IOException{
+		HashMap<String, Chatroom> chatrooms = new HashMap<String,Chatroom>(1);
+		HashMap<String, String> users = loadUsers();
 		acceptConnections(port);
 	}
 
@@ -22,37 +26,42 @@ public class ChatServer {
 
 	private void acceptConnections(int port) throws IOException{
 		serverSocket = new ServerSocket(port);
-
-		System.out.println("Server accepting connections on "+serverSocket);
-
-		while(true){
-			Socket socket = serverSocket.accept();
-			System.out.println("Client connection from "+socket);
-			DataOutputStream dis = new DataOutputStream(socket.getOutputStream());
-			clients.put(socket, dis);
-			new ChatServerThread(this, socket);			
-		}
-	}
-
-	public void sendToClients(String message) throws IOException{
-		Set<Socket> keys = clients.keySet();
-		for (Socket client : keys){
-			clients.get(client).writeUTF(message);
-		}
-	}
-
-	public void removeConnection(Socket socket){
 		try{
-			socket.close();
+			ServerSocket serverSocket = new ServerSocket(port);
+
+			while(true){
+				Socket socket = serverSocket.accept();
+				System.out.println("Client connection from "+socket);
+				new ChatServerThread(socket).run();		
+			}
 		}
-		catch(IOException e){
+		catch (IOException e){
 			e.printStackTrace();
 		}
-		finally{
-			clients.remove(socket);
-		}
+		System.out.println("Server accepting connections on "+serverSocket);
+
 
 	}
+
+	public void addToChatroom(String crn, Socket socket){
+		try{
+			chatrooms.get(crn).addClient(socket);
+		}
+		catch (IOException e){
+			System.err.println("Error adding client:"+socket+" to chatroom:"+crn);
+			e.printStackTrace();
+		}
+	}
+
+	public void removeChatroom(String crn){
+		chatrooms.remove(crn);
+	}
+		
+	// method for loading the users in from a file
+	public HashMap<String,String> loadUsers(){
+		return new HashMap<String,String>(1);
+	}
+
 
 
 }
