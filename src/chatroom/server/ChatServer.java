@@ -1,6 +1,7 @@
 package chatroom.server;
 
-import java.io.*;
+
+import java.io.IOException;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.HashMap;
@@ -8,13 +9,17 @@ import java.util.Set;
 
 public class ChatServer {
 	protected ServerSocket serverSocket;
-	protected static HashMap<String, Chatroom> chatrooms;
-	protected static HashMap<String, String> users;
+	protected HashMap<String, Chatroom> chatRooms;
+	protected HashMap<String, String> users;
+	protected int port;
 	
 	public ChatServer(int port) throws IOException{
-		HashMap<String, Chatroom> chatrooms = new HashMap<String,Chatroom>(1);
+		this.port = port;
+		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>(1);
+		this.chatRooms = chatRooms;
 		HashMap<String, String> users = loadUsers();
-		acceptConnections(port);
+		this.users = users;
+		acceptConnections();
 	}
 
 	public static void main (String[] args){
@@ -24,37 +29,30 @@ public class ChatServer {
 		}catch(IOException e){e.printStackTrace();}
 	}
 
-	private void acceptConnections(int port) throws IOException{
-		serverSocket = new ServerSocket(port);
+	private void acceptConnections() throws IOException{
 		try{
-			ServerSocket serverSocket = new ServerSocket(port);
-
+			ServerSocket serverSocket = new ServerSocket(this.port);
+			System.out.println("Server accepting connections on "+serverSocket);
 			while(true){
 				Socket socket = serverSocket.accept();
 				System.out.println("Client connection from "+socket);
-				new ChatServerThread(socket).run();		
+				new ChatServerThread(socket, this).run();		
 			}
 		}
 		catch (IOException e){
 			e.printStackTrace();
 		}
-		System.out.println("Server accepting connections on "+serverSocket);
-
-
 	}
 
-	public void addToChatroom(String crn, Socket socket){
-		try{
-			chatrooms.get(crn).addClient(socket);
-		}
-		catch (IOException e){
-			System.err.println("Error adding client:"+socket+" to chatroom:"+crn);
-			e.printStackTrace();
-		}
+	public void createChatroom(String crn){
+		if(!chatRooms.containsKey(crn))
+			chatRooms.put(crn, new Chatroom(crn, this));
+		else
+			System.err.println("Chatroom already exists");
 	}
 
 	public void removeChatroom(String crn){
-		chatrooms.remove(crn);
+		chatRooms.remove(crn);
 	}
 		
 	// method for loading the users in from a file

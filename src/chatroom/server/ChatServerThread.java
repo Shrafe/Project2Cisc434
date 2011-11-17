@@ -1,5 +1,7 @@
 package chatroom.server;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -7,18 +9,33 @@ import java.net.Socket;
 
 public class ChatServerThread implements Runnable {
 	Socket socket;
+	ChatServer chatServer;
 	ObjectOutputStream oos;
 	ObjectInputStream ois;
-	public ChatServerThread(Socket socket){
+	String userName;
+	String password;
+
+	public ChatServerThread(Socket socket, ChatServer chatserver){
 		this.socket = socket;
+		this.chatServer = chatserver;
 		try {
 			oos = new ObjectOutputStream(this.socket.getOutputStream());
 			ois = new ObjectInputStream(this.socket.getInputStream());
-		} catch (IOException e) {
+			loadUserInfo();
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+
+	/**
+	 * Initial messages from client to server are
+	 * 1) Username
+	 * 2) password
+	 * Followed by any number of 
+	 * 3) Chatroom name
+	 * 4) Any number of messages
+	 */
 
 	public void run(){
 		try {
@@ -26,17 +43,18 @@ public class ChatServerThread implements Runnable {
 
 				// give the user a list of chatrooms 
 
-				oos.writeObject(ChatServer.chatrooms); // send the client the map of available chatrooms. process clientside
+				oos.writeObject(chatServer.chatRooms); // send the client the map of available chatrooms. process clientside
 
 				String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
 
-				ChatServer.chatrooms.get(crn).addClient(this.socket); // add the client to the appropriate chatroom's client list
-				oos.close(); // close them both to avoid annoyance with socket 
-				ois.close(); // close them both to avoid annoyance with socket
+				if (!chatServer.chatRooms.containsKey(crn)) // if the requested chatroom doesn't exist
+					chatServer.createChatroom(crn); // create it on the server
+				else // it exists; add the client to that chatroom
+					chatServer.chatRooms.get(crn).addClient(this.socket, this.userName); // add the client to the appropriate chatroom's client list
+				startChat(crn); // start chatting in that room
 
-				// TODO: Somehow implement a waiting mechanism for the client to return from being in the chatroom. 
-				Thread.sleep(1000000);
-				// The Thread.sleep is not a solution and is hacky at best.
+				// TODO: need to add a way to have startChat() exist elegantly.
+				// TODO: need some kind of looping structure here, maybe while (true) will work, perhaps something mroe elegant
 			}
 			else
 				System.out.println("User validation failed for "+ socket);
@@ -44,19 +62,41 @@ public class ChatServerThread implements Runnable {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e){
 			e.printStackTrace();
-		} catch (InterruptedException e){
-			e.printStackTrace();
-		}
+		} 
 	}
 
 	public boolean validUser() throws IOException, ClassNotFoundException{
-		// TODO: Implement a proper check for the existence of a user
-		String userName = (String)ois.readObject();
-		String password = (String)ois.readObject();
-
-		// check the values in the hashmap. userName = key, password should = value;
-		return ChatServer.users.get(userName).equals(password);
-
+		return chatServer.users.get(userName).equals(password);
 	}
+	
+	public void loadUserInfo() throws IOException, ClassNotFoundException{
+		this.userName = (String)ois.readObject();
+		this.password = (String)ois.readObject();
+	}
+
+	/**
+	 * Method for being in a chat session. loops until the user leaves the chatroom (not yet implemented.)
+	 * @param crn
+	 */
+
+	public void startChat(String crn){
+		try{
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			while (true){
+				String message = dis.readUTF();
+				System.out.println("Received message from: "+socket);
+				chatServer.chatRooms.get(crn).sendToClients(message);
+			}
+		}
+		catch(EOFException e){}
+		catch(IOException e){
+			e.printStackTrace();
+		}
+		finally{
+			chatServer.chatRooms.get(crn).removeConnection(socket); // may not want to do this
+		}
+	}
+
+
 
 }
