@@ -48,10 +48,7 @@ public class ChatServer {
 	}
 
 	public void createChatroom(String crn){
-		if(!chatRooms.containsKey(crn))
-			chatRooms.put(crn, new Chatroom(crn, this));
-		else
-			System.err.println("Chatroom already exists");
+		chatRooms.put(crn, new Chatroom(crn, this));
 	}
 
 	public void removeChatroom(String crn){
@@ -86,10 +83,10 @@ public class ChatServer {
 
 	public void joinChatroom(String crn, Socket socket, String userName){
 		try{
-			if (chatRooms.containsKey(crn))
+			if (!chatRooms.containsKey(crn))
 				createChatroom(crn);
-			else
-				chatRooms.get(crn).addClient(socket, userName);
+			
+			chatRooms.get(crn).addClient(socket, userName);
 		} catch (Exception e){
 			e.printStackTrace();
 		}

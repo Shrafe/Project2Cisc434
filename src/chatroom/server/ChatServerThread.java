@@ -51,7 +51,7 @@ public class ChatServerThread implements Runnable {
 				// TODO: need some kind of looping structure here, maybe while (true) will work, perhaps something mroe elegant
 			}
 			else
-				System.out.println("User validation failed for "+ socket);
+				System.err.println("User validation failed for "+ socket);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e){
@@ -64,8 +64,8 @@ public class ChatServerThread implements Runnable {
 	}
 	
 	public void loadUserInfo() throws IOException, ClassNotFoundException{
-		this.userName = (String)ois.readObject();
-		this.password = (String)ois.readObject();
+		this.userName = ois.readUTF();
+		this.password = ois.readUTF();
 	}
 	
 	/**
