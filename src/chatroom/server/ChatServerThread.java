@@ -30,7 +30,7 @@ public class ChatServerThread implements Runnable {
 
 	/**
 	 * Initial messages from client to server are
-	 * 1) Username
+	 * 1) Username 
 	 * 2) password
 	 * Followed by any number of 
 	 * 3) Chatroom name
@@ -42,15 +42,9 @@ public class ChatServerThread implements Runnable {
 			if (validUser()){
 
 				// give the user a list of chatrooms 
-
 				oos.writeObject(chatServer.chatRooms); // send the client the map of available chatrooms. process clientside
-
 				String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
-
-				if (!chatServer.chatRooms.containsKey(crn)) // if the requested chatroom doesn't exist
-					chatServer.createChatroom(crn); // create it on the server
-				else // it exists; add the client to that chatroom
-					chatServer.chatRooms.get(crn).addClient(this.socket, this.userName); // add the client to the appropriate chatroom's client list
+				chatServer.joinChatroom(crn, this.socket, this.userName); // some logic to either be added to the chatroom, or create a new one
 				startChat(crn); // start chatting in that room
 
 				// TODO: need to add a way to have startChat() exist elegantly.
@@ -73,7 +67,7 @@ public class ChatServerThread implements Runnable {
 		this.userName = (String)ois.readObject();
 		this.password = (String)ois.readObject();
 	}
-
+	
 	/**
 	 * Method for being in a chat session. loops until the user leaves the chatroom (not yet implemented.)
 	 * @param crn
