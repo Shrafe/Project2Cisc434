@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Set;
 
 import chatroom.server.Chatroom;
 
@@ -14,21 +15,32 @@ public class ChatClient {
 			Socket socket = new Socket("localhost", 4444);
 			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 			ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-			oos.writeUTF("thauser"); // username
-			oos.writeUTF("goofball"); // password
-			HashMap<String, Chatroom> chatRooms;
-			chatRooms = (HashMap<String,Chatroom>)ois.readObject(); // we recieve this from the server. new issues apparent: resend this upon creating chatroom (annoying problem)
-			System.out.println(chatRooms.keySet());
-			oos.writeUTF("new");
-			oos.writeUTF("test message");
-			System.out.println(ois.readUTF());
+			oos.writeObject("thauser"); // username
+			oos.writeObject("goofball"); // password
+			String[] chatRooms = (String[])ois.readObject(); // we receive this from the server. new issues apparent: resend this upon creating chatroom (annoying problem)
+			System.out.println("Rooms available: "+printArray(chatRooms));
+			oos.writeObject("new");
+			String[] userlist = (String[])ois.readObject();
+			System.out.println("Joined room new with "+printArray(userlist) + " users.");
+			oos.writeObject("test message");
+			System.out.println((String)ois.readObject());
+			ois.close();
+			oos.close();
+			Thread.sleep(100000);
+			
 			
 
 
 		} catch (Exception e){
 			e.printStackTrace();
-			System.err.println("derrrrp");
-			System.exit(1);
 		}
+	}
+	
+	public static String printArray(String [] a){
+		StringBuffer buf = new StringBuffer();
+		for (String b : a){
+			buf.append(b);
+		}
+		return buf.toString();
 	}
 }
