@@ -5,6 +5,8 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.Set;
 
 public class ChatServer {
 	protected ServerSocket serverSocket;
+	protected String[] chatRoomNames; // we keep this so we can quickly send a String array to the clients containing the names of chatrooms
 	protected HashMap<String, Chatroom> chatRooms;
 	protected HashMap<String, String> users;
 	protected int port;
@@ -22,6 +25,7 @@ public class ChatServer {
 		this.chatRooms = chatRooms;
 		HashMap<String, String> users = loadUsers();
 		this.users = users;
+		this.chatRoomNames = loadChatRoomNames();
 		acceptConnections();
 	}
 
@@ -29,12 +33,23 @@ public class ChatServer {
 		int port = Integer.parseInt(args[0]);
 		try{
 			new ChatServer(port);
-		}catch(IOException e){e.printStackTrace();}
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	public String[] loadChatRoomNames(){
+		Object[] keys = chatRooms.keySet().toArray();
+		String [] returnVal = new String[keys.length];
+		for (int i = 0; i < returnVal.length; i++){
+			returnVal[i] = (String)keys[i];
+		}
+		return returnVal;
 	}
 
 	private void acceptConnections() throws IOException{
 		try{
-			ServerSocket serverSocket = new ServerSocket(this.port);
+			this.serverSocket = new ServerSocket(this.port);
 			System.out.println("Server accepting connections on "+serverSocket);
 			while(true){
 				Socket socket = serverSocket.accept();
@@ -81,12 +96,12 @@ public class ChatServer {
 		return returnVal;
 	}
 
-	public void joinChatroom(String crn, Socket socket, String userName){
+	public void joinChatroom(String crn, ObjectOutputStream oos, String userName){
 		try{
 			if (!chatRooms.containsKey(crn))
 				createChatroom(crn);
 			
-			chatRooms.get(crn).addClient(socket, userName);
+			chatRooms.get(crn).addClient(oos, userName);
 		} catch (Exception e){
 			e.printStackTrace();
 		}

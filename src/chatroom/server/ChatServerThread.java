@@ -1,6 +1,5 @@
 package chatroom.server;
 
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -12,7 +11,7 @@ public class ChatServerThread implements Runnable {
 	ChatServer chatServer;
 	ObjectOutputStream oos;
 	ObjectInputStream ois;
-	String userName;
+	String username;
 	String password;
 
 	public ChatServerThread(Socket socket, ChatServer chatserver){
@@ -42,13 +41,13 @@ public class ChatServerThread implements Runnable {
 			if (validUser()){
 
 				// give the user a list of chatrooms 
-				oos.writeObject(chatServer.chatRooms); // send the client the map of available chatrooms. process clientside
+				oos.writeObject(chatServer.chatRoomNames); // send the client the map of available chatrooms. process clientside. don't actually need the chatroom objects, just names
 				String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
-				chatServer.joinChatroom(crn, this.socket, this.userName); // some logic to either be added to the chatroom, or create a new one
+				chatServer.joinChatroom(crn, oos, this.username); // some logic to either be added to the chatroom, or create a new one
+				chatServer.chatRooms.get(crn).sendClientList(this.username); // send the chatroom's client list to the client (String[])
 				startChat(crn); // start chatting in that room
-
 				// TODO: need to add a way to have startChat() exist elegantly.
-				// TODO: need some kind of looping structure here, maybe while (true) will work, perhaps something mroe elegant
+				// TODO: need some kind of looping structure here, maybe while (true) will work, perhaps something more elegant
 			}
 			else
 				System.err.println("User validation failed for "+ socket);
@@ -60,14 +59,14 @@ public class ChatServerThread implements Runnable {
 	}
 
 	public boolean validUser() throws IOException, ClassNotFoundException{
-		return chatServer.users.get(userName).equals(password);
+		return chatServer.users.get(username).equals(password);
 	}
-	
+
 	public void loadUserInfo() throws IOException, ClassNotFoundException{
-		this.userName = ois.readUTF();
-		this.password = ois.readUTF();
+		this.username = (String)ois.readObject();
+		this.password = (String)ois.readObject();
 	}
-	
+
 	/**
 	 * Method for being in a chat session. loops until the user leaves the chatroom (not yet implemented.)
 	 * @param crn
@@ -75,15 +74,19 @@ public class ChatServerThread implements Runnable {
 
 	public void startChat(String crn){
 		try{
-			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			while (true){
-				String message = dis.readUTF();
+				String message = (String) ois.readObject();
 				System.out.println("Received message from: "+socket);
 				chatServer.chatRooms.get(crn).sendToClients(message);
 			}
 		}
-		catch(EOFException e){}
+		catch(EOFException e){
+			e.printStackTrace();
+		}
 		catch(IOException e){
+			e.printStackTrace();
+		}
+		catch(ClassNotFoundException e){
 			e.printStackTrace();
 		}
 		finally{
