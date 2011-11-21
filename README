@@ -13,3 +13,14 @@ my preliminary 5am ideas
 without something like this i'm having a hell of a time making sure all of the streams are waiting for the right
 things and having the right things written to them when neeeded, just check out the code lol
 
+oh also really unsure as to why we need a thread for sending the messages? don't we need a thread for handling the messages, 
+not sending them? anyway let me know what you think. 
+
+much room for improvement but we are running out of time heh...
+
+users.txt = hardcoded path in the ChatServer to load users out of it. if you wanna parameterize it go right ahead haha.
+format:
+
+<username><single-space><password>
+
+plaintext ftw.
