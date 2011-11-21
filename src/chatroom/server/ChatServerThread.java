@@ -5,16 +5,21 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class ChatServerThread implements Runnable {
-	Socket socket;
-	ChatServer chatServer;
-	ObjectOutputStream oos;
-	ObjectInputStream ois;
-	String username;
-	String password;
+	private Socket socket;
+	static int count; // REMOVE THIS
+	private ChatServer chatServer;
+	private ObjectOutputStream oos;
+	private ObjectInputStream ois;
+	private String username;
+	private String password;
+	private String crn; // the chatroom we're currently in
+	private boolean connected;
 
 	public ChatServerThread(Socket socket, ChatServer chatserver){
+		this.connected = true;
 		this.socket = socket;
 		this.chatServer = chatserver;
 		try {
@@ -34,33 +39,31 @@ public class ChatServerThread implements Runnable {
 	 * 3) Chatroom name
 	 * 4) Any number of messages
 	 */
-
+	
 	public void run(){
-		int result;
+		int messageType;
 		try {
-			while (true){
-				result = validUser();
-				switch (result){
+			while (connected){
+				messageType = getMessageType();
+				switch (messageType){
 					case 0: 
-						System.out.println("Validation successful: "+this.username);
-						oos.writeObject(chatServer.chatRoomNames); // send the client the map of available chatrooms. process clientside. don't actually need the chatroom objects, just names
-						String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
-						chatServer.joinChatroom(crn, oos, this.username); // some logic to either be added to the chatroom, or create a new one
-						chatServer.chatRooms.get(crn).sendClientList(this.username); // send the chatroom's client list to the client (String[])
-						startChat(crn); // start chatting in that room
+						validUser(); 
 						break;
 					case 1:
-						System.out.println("New user added: "+this.username.substring(1)+" | Password: " +this.password);
-						oos.writeObject("success");
+						createUser();
 						break;
 					case 2:
-						System.err.println("User creation failed: Duplicate username");
-						oos.writeObject("dup");
+						joinRoom();
 						break;
 					case 3:
-						System.err.println("User validation failed: "+this.username);
-						oos.writeObject(null);
-						break;	
+						sendMessage();
+						break;
+					case 4:
+						sendChatrooms();
+						break;
+					case 5:
+						sendUsers();
+						break;
 				}
 			}
 		} catch (IOException e) {
@@ -70,72 +73,173 @@ public class ChatServerThread implements Runnable {
 		} 
 	}
 	
+	/** 
+	 * Method that returns the value that precedes any date for all communication with the server
+	 * 0: login with the following data
+	 * 1: create a new user with the following data
+	 * 2: join a room with the following data
+	 * 3: send a message with the following data
+	 * 4: send me a list of chatrooms
+	 * 5: send me a list of users
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	
+	public int getMessageType() throws IOException, ClassNotFoundException{
+		int result = -1;
+		try{
+			result = Integer.parseInt((String)ois.readObject());
+		} catch (SocketException e){
+			oos.close();
+			ois.close();
+			socket.close();
+			this.connected = false; //dirty again
+			System.out.println("Client disconnected from: "+socket);
+		}
+		return result;
+	}
+	
 	/**
-	 * Method that returns an int that represents a scenario.
-	 * 0: user exists and validation was successful
-	 * 1: new user created successfully
-	 * 2: user creation failed because of a duplicate
-	 * 3: validation failed
-	 * 4: crayzee error
+	 * Method that checks whether or not the data given represents a valid user
+	 * 
+	 * Input from socket:
+	 * String username
+	 * AND
+	 * String password
+	 * 
+	 * Output to socket: 
+	 * String[] of chatroom names if validation is successful
+	 * OR
+	 * null if validation fails 
 	 * 
 	 * @return
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
 
-	public int validUser() throws IOException, ClassNotFoundException{
-		this.username = (String)ois.readObject();
-		this.password = (String)ois.readObject();
-		if (this.username.charAt(0)=='+'){//dirrrrrrrrrrrrrrrrty. we wanna make a new user if username starts with a +
-			String result = chatServer.addUser(this.username, this.password);
-			if (result.equals("success"))
-				return 1;
-			else if (result.equals("dup"))
-				return 2;
-			else
-				return 4;
+	public void validUser() throws IOException, ClassNotFoundException{
+		String checkUsername = (String)ois.readObject();
+		String checkPassword = (String)ois.readObject();
+		if (chatServer.users.containsKey(checkUsername)){
+			if (chatServer.users.get(checkUsername).equals(checkPassword)){
+				this.username = checkUsername;
+				this.password = checkPassword;
+				System.out.println("User: "+this.username+" validated successfully.");
+				sendChatrooms();
+			}
+			else {
+				System.err.println("User: "+checkUsername+" validation failed from: "+socket);
+				oos.writeObject(null);
+			}
 		}
 		else {
-			if (chatServer.users.containsKey(username)){
-				if (chatServer.users.get(this.username).equals(this.password)){
-					return 0;
-				}
-				else
-					return 3;
-			}
-			else
-				return 3;
+			System.err.println("User: "+checkUsername+" gave wrong credentials from: "+socket);
+			oos.writeObject(null);
 		}
 	}
-
+	
+	/**
+	 * Method that adds a new user to the chatserver. 
+	 * 
+	 * Input from socket:
+	 * String username
+	 * AND
+	 * String password
+	 * 
+	 * Output to socket:
+	 * String result of the addUser operation ("dup" || "success") 
+	 * 
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	
+	public void createUser() throws IOException, ClassNotFoundException{
+		String newUsername = (String)ois.readObject();
+		String newPassword = (String)ois.readObject();
+		String result = chatServer.addUser(newUsername, newPassword);
+		System.out.println("New user created: "+ newUsername + " | Result of operation was: "+result);
+		oos.writeObject(result);		
+	}
+	
+	/** 
+	 * Method that adds the user associated with this thread to the named chatroom
+	 * 
+	 * Input from socket:
+	 * String chatroomName
+	 * 
+	 * Output to socket:
+	 * list of users in this chatroom 
+	 * 
+	 */
+	
+	public void joinRoom() throws IOException, ClassNotFoundException{
+		String crn = (String)ois.readObject();		
+		chatServer.joinChatroom(crn, oos, this.username); 
+		System.out.println("User "+username+" joined room: "+ crn);
+		this.crn = crn;
+		sendUsers();
+	}
+	
+	/**
+	 * Method that sends the data from the client as a message to all
+	 * clients connected to the chatroom that this client is in
+	 * 
+	 * Input from socket:
+	 * String message
+	 * 
+	 * Output to socket (done by the chatroom):
+	 * String message
+	 * 
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	
+	public void sendMessage() throws IOException, ClassNotFoundException{
+		String message = (String)ois.readObject();
+		System.out.println("Message received from user: "+this.username+" at: "+this.socket);
+		chatServer.chatRooms.get(this.crn).sendToClients(message);	
+	}
 
 	/**
-	 * Method for being in a chat session. loops until the user leaves the chatroom (not yet implemented.)
-	 * @param crn
+	 * Method that sends the String[] of chatrooms, because the client 
+	 * requested it for some reason
+	 * 
+	 * Input from socket:
+	 * none 
+	 * 
+	 * Output to socket:
+	 * String[] of chat rooms on the server at the moment
+	 * 
+	 * @throws IOException
+	 * @throws ClassNotFoundException
 	 */
-
-	public void startChat(String crn){
-		try{
-			while (true){
-				String message = (String) ois.readObject();
-				System.out.println("Received message from: "+socket+" | Message: "+message);
-				chatServer.chatRooms.get(crn).sendToClients(message);
-			}
-		}
-		catch(EOFException e){
-			e.printStackTrace();
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		}
-		catch(ClassNotFoundException e){
-			e.printStackTrace();
-		}
-		finally{
-			chatServer.chatRooms.get(crn).removeConnection(socket); // may not want to do this
-		}
+	
+	public void sendChatrooms() throws IOException, ClassNotFoundException{
+		oos.writeObject(chatServer.chatRoomNames);
+		// for testing
+		chatServer.createChatroom("test"+count);
+		count++;
+		System.out.println("Sent chatroom list to: "+this.username+" at: "+this.socket);
 	}
-
-
-
+	
+	/**
+	 * Same as above, but sends the list of users, not chatrooms
+	 * 
+	 * Input from socket: 
+	 * none
+	 * 
+	 * Output to socket:
+	 * String[] users in the chatroom we are in
+	 * 
+	 * 
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	
+	public void sendUsers() throws IOException, ClassNotFoundException{
+		oos.writeObject(this.chatServer.chatRooms.get(crn).getClientList());	
+		System.out.println("Sent user list to: "+this.username+" at: "+this.socket);
+	}
 }

@@ -24,8 +24,10 @@ public class ChatServer {
 
 	public ChatServer(int port) throws IOException{
 		this.port = port;
-		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>(1);
+		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>();
+		chatRooms.put("Test room", new Chatroom("Test room", this));
 		this.chatRooms = chatRooms;
+		
 		HashMap<String, String> users = loadUsers();
 		this.users = users;
 		this.chatRoomNames = loadChatRoomNames();
@@ -75,15 +77,14 @@ public class ChatServer {
 	}
 
 	public String addUser(String username, String password){
-		String realUsername = username.substring(1);
 		String returnVal = null;
 	
-		if (this.users.containsKey(realUsername)){
+		if (this.users.containsKey(username)){
 			returnVal = "dup";
 		}
 		else { 
 			returnVal = "success";
-			this.users.put(realUsername, password);
+			this.users.put(username, password);
 		}
 		writeUsersFile();
 		return returnVal;

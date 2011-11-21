@@ -35,8 +35,8 @@ public class Chatroom extends Thread implements Serializable{
 		}
 	}
 	
-	public void sendClientList(String username) throws IOException{
-		clients.get(username).writeObject(clientNames);
+	public String[] getClientList() throws IOException{
+		return clientNames;
 	}
 
 	public void removeConnection(Socket socket){
