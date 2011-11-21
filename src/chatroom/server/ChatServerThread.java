@@ -20,7 +20,6 @@ public class ChatServerThread implements Runnable {
 		try {
 			oos = new ObjectOutputStream(this.socket.getOutputStream());
 			ois = new ObjectInputStream(this.socket.getInputStream());
-			loadUserInfo();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -37,35 +36,78 @@ public class ChatServerThread implements Runnable {
 	 */
 
 	public void run(){
+		int result;
 		try {
-			if (validUser()){
-
-				// give the user a list of chatrooms 
-				oos.writeObject(chatServer.chatRoomNames); // send the client the map of available chatrooms. process clientside. don't actually need the chatroom objects, just names
-				String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
-				chatServer.joinChatroom(crn, oos, this.username); // some logic to either be added to the chatroom, or create a new one
-				chatServer.chatRooms.get(crn).sendClientList(this.username); // send the chatroom's client list to the client (String[])
-				startChat(crn); // start chatting in that room
-				// TODO: need to add a way to have startChat() exist elegantly.
-				// TODO: need some kind of looping structure here, maybe while (true) will work, perhaps something more elegant
+			while (true){
+				result = validUser();
+				switch (result){
+					case 0: 
+						System.out.println("Validation successful: "+this.username);
+						oos.writeObject(chatServer.chatRoomNames); // send the client the map of available chatrooms. process clientside. don't actually need the chatroom objects, just names
+						String crn = (String)ois.readObject(); // wait here for the name of the chatroom the client wants to join
+						chatServer.joinChatroom(crn, oos, this.username); // some logic to either be added to the chatroom, or create a new one
+						chatServer.chatRooms.get(crn).sendClientList(this.username); // send the chatroom's client list to the client (String[])
+						startChat(crn); // start chatting in that room
+						break;
+					case 1:
+						System.out.println("New user added: "+this.username.substring(1)+" | Password: " +this.password);
+						oos.writeObject("success");
+						break;
+					case 2:
+						System.err.println("User creation failed: Duplicate username");
+						oos.writeObject("dup");
+						break;
+					case 3:
+						System.err.println("User validation failed: "+this.username);
+						oos.writeObject(null);
+						break;	
+				}
 			}
-			else
-				System.err.println("User validation failed for "+ socket);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e){
 			e.printStackTrace();
 		} 
 	}
+	
+	/**
+	 * Method that returns an int that represents a scenario.
+	 * 0: user exists and validation was successful
+	 * 1: new user created successfully
+	 * 2: user creation failed because of a duplicate
+	 * 3: validation failed
+	 * 4: crayzee error
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
 
-	public boolean validUser() throws IOException, ClassNotFoundException{
-		return chatServer.users.get(username).equals(password);
-	}
-
-	public void loadUserInfo() throws IOException, ClassNotFoundException{
+	public int validUser() throws IOException, ClassNotFoundException{
 		this.username = (String)ois.readObject();
 		this.password = (String)ois.readObject();
+		if (this.username.charAt(0)=='+'){//dirrrrrrrrrrrrrrrrty. we wanna make a new user if username starts with a +
+			String result = chatServer.addUser(this.username, this.password);
+			if (result.equals("success"))
+				return 1;
+			else if (result.equals("dup"))
+				return 2;
+			else
+				return 4;
+		}
+		else {
+			if (chatServer.users.containsKey(username)){
+				if (chatServer.users.get(this.username).equals(this.password)){
+					return 0;
+				}
+				else
+					return 3;
+			}
+			else
+				return 3;
+		}
 	}
+
 
 	/**
 	 * Method for being in a chat session. loops until the user leaves the chatroom (not yet implemented.)
@@ -76,7 +118,7 @@ public class ChatServerThread implements Runnable {
 		try{
 			while (true){
 				String message = (String) ois.readObject();
-				System.out.println("Received message from: "+socket);
+				System.out.println("Received message from: "+socket+" | Message: "+message);
 				chatServer.chatRooms.get(crn).sendToClients(message);
 			}
 		}

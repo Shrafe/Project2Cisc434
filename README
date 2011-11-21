@@ -1,0 +1,15 @@
+We may want to consider sending special values between the two before sending any actual meaningful data. 
+This would allow us to control server state better. as it stands i'm basically just hacking stuff on as i
+see fit. and i mean it'll work but i feel terrible for doing it
+lol
+
+my preliminary 5am ideas
+
+1: login data incoming
+2: chatroom name is next piece of data
+3: send me a new list of chatroom names
+
+
+without something like this i'm having a hell of a time making sure all of the streams are waiting for the right
+things and having the right things written to them when neeeded, just check out the code lol
+

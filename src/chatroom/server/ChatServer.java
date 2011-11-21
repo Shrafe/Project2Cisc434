@@ -2,11 +2,14 @@ package chatroom.server;
 
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.HashMap;
@@ -33,11 +36,12 @@ public class ChatServer {
 		int port = Integer.parseInt(args[0]);
 		try{
 			new ChatServer(port);
-		}catch(IOException e){
+		}catch(Exception e){
 			e.printStackTrace();
+			
 		}
 	}
-	
+
 	public String[] loadChatRoomNames(){
 		Object[] keys = chatRooms.keySet().toArray();
 		String [] returnVal = new String[keys.length];
@@ -70,6 +74,37 @@ public class ChatServer {
 		chatRooms.remove(crn);
 	}
 
+	public String addUser(String username, String password){
+		String realUsername = username.substring(1);
+		String returnVal = null;
+	
+		if (this.users.containsKey(realUsername)){
+			returnVal = "dup";
+		}
+		else { 
+			returnVal = "success";
+			this.users.put(realUsername, password);
+		}
+		writeUsersFile();
+		return returnVal;
+	}
+
+	public void writeUsersFile(){
+		// write out the new file
+		// TODO: parameterize
+		Set<String> keySet = this.users.keySet();
+		PrintWriter out = null;
+		try{
+			out = new PrintWriter(new FileWriter("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
+			for (String key : keySet){
+				out.println(key+" "+this.users.get(key));
+			}
+			out.close();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
 	// method for loading the users in from a file
 	// Expected format in file is space seperated entries like this
 	// thauser password
@@ -100,7 +135,7 @@ public class ChatServer {
 		try{
 			if (!chatRooms.containsKey(crn))
 				createChatroom(crn);
-			
+
 			chatRooms.get(crn).addClient(oos, userName);
 		} catch (Exception e){
 			e.printStackTrace();
