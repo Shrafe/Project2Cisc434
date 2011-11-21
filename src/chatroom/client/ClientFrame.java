@@ -6,11 +6,11 @@ import javax.swing.JFrame;
 
 public class ClientFrame extends JFrame {
 
-	public static void start(String title) {
+	public static void start(String title, String hostname, int port) {
 		Dimension size;	
 		ClientFrame f = new ClientFrame(title);
 
-		ClientApp a = new ClientApp(f);
+		ClientApp a = new ClientApp(f, hostname, port);
 		
 		a.init();
 		a.start();
@@ -34,6 +34,8 @@ public class ClientFrame extends JFrame {
 	};
 	
 	public static void main(String args[]) {
-		ClientFrame.start("ClientUI");
+		int port = Integer.parseInt(args[0]);
+		String hostname = args[1];
+		ClientFrame.start("ClientUI", hostname, port);
 	}
 }
