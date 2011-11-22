@@ -46,6 +46,8 @@ public class ClientApp extends JApplet{
 	private ObjectInputStream ois;
 	private ObjectOutputStream oos;
 	private Socket socket;
+	
+	private ClientChatThread clientChatHandler;
 
 	public ClientApp (JFrame frame, String hostname, int port) {
 		try{
@@ -190,6 +192,9 @@ public class ClientApp extends JApplet{
 		for (int i = 0; i < components.size(); i++) {
 			frame.add(components.get(i));
 		}
+		
+		clientChatHandler = new ClientChatThread(chatHistory, ois);
+		clientChatHandler.start();
 		//getContentPane().add(frame);
 	}
 
@@ -282,11 +287,13 @@ public class ClientApp extends JApplet{
 		return result;
 	}
 
+	
+	// my idea with this didn't work, feel free to mess with it
 	public void refreshDisplay(){
 		for (Component com : components){
 			com.repaint();
 		}
-	}
+	}	
 
 	/**
 	 * Requests a new list of chatrooms, and puts them into the JList
@@ -311,26 +318,6 @@ public class ClientApp extends JApplet{
 	}
 
 	class JoinListener implements ActionListener {
-		/*		public void actionPerformed(ActionEvent e) {
-
-			// Check that the user has selected a room
-			if (roomList.getSelectedIndex() != -1) {
-
-				// Set the local variable for chat room name
-				chatRoom = (String)roomList.getSelectedValue();
-
-				ClientMsgThread thread = new ClientMsgThread(chatRoom, user);
-
-				thread.run();
-
-				userList = new JList(new String[] {"test"});
-
-				clearComponents();
-
-				chatRoomWindow();
-			}
-		}*/		
-
 		public void actionPerformed(ActionEvent e) {
 			try{
 				oos.writeObject("2"); // we're joining a room
@@ -360,50 +347,16 @@ public class ClientApp extends JApplet{
 	 */
 	class SendListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-
-			//		int size = userList.getSelectedIndices().length;
-			//		ClientMsgThread thread = null;
 			String message = null;
 			try{
 				// One whisper or "All" users selected
 				oos.writeObject("3"); // we're sending a message!
-				/*				if(size == 1) {
-					//if (userList.getSelectedIndex() != 0) {
-						// Whisper the target
-						thread = new ClientMsgThread(
-								user + ": " + chatBox.getText(),
-								chatRoom, user,
-								(String)userList.getSelectedValue()
-								);
-				//	}
-					//else {
-						// Post to the room*/
-				oos.writeObject(user+": "+chatBox.getText());
-				message = (String)ois.readObject(); // read message from the server
 
-				//}
-				/*}
-				else {
-					// Whisper multiple targets
-					List<String> targets = makeList(userList.getSelectedValues());
-					thread = new ClientMsgThread(
-							user + ": " + chatBox.getText(),
-							chatRoom, user,	targets);
-				}*/
+				oos.writeObject(user+": "+chatBox.getText());
+
 			} catch(Exception ex){
 				ex.printStackTrace();
 			}
-
-			// Send the message
-			//thread.run();
-
-			/////////////////////////////////////////////
-			// Testing that the message shows up in the box
-			// receive the message (this should be done in a thread 100%)
-
-			chatHistory.setText(chatHistory.getText() + "\n" + message);
-			/////////////////////////////////////////////
-
 			chatBox.setText("");
 		}
 	}
@@ -461,9 +414,12 @@ public class ClientApp extends JApplet{
 
 	// Handles the Leave Room button click event
 	class ExitListener implements ActionListener {
+		@SuppressWarnings("deprecation")
 		public void actionPerformed(ActionEvent e) {
 			// TODO: Clear the components currently in the frame
 			try{
+				// stop the thread managing the chat
+				clientChatHandler.close();
 				oos.writeObject("4");
 				String [] rooms = (String[])ois.readObject();
 				roomList = new JList(rooms); // dirty!
