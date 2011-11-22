@@ -2,6 +2,7 @@ package chatroom.client;
 
 import java.lang.InterruptedException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 
 import javax.swing.JTextArea;
@@ -14,7 +15,7 @@ import javax.swing.JTextArea;
  * @author TomW7
  *
  */
-public class ClientChatThread extends Thread {
+public class ClientChatThread implements Runnable {
 
 	private ObjectInputStream ois;
 	private JTextArea chatHistory;
@@ -32,22 +33,23 @@ public class ClientChatThread extends Thread {
 	 */
 
 	public void run(){
-		try{
-			while(chatting){
+
+		while(chatting){
+			try{
 				String message = (String)ois.readObject();
 				this.chatHistory.setText(this.chatHistory.getText() + "\n" + message);
-			}
-		} catch (IOException ioe) {
-			// TODO Auto-generated catch block
-			ioe.printStackTrace();
-		} catch (ClassNotFoundException cnfe) {
-			// TODO Auto-generated catch block
-			cnfe.printStackTrace();
+			} catch (InterruptedIOException ioe) {
+				this.chatting=false;
+			} catch (ClassNotFoundException cnfe) {
+				// TODO Auto-generated catch block
+				cnfe.printStackTrace();
+				chatting = false;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				chatting = false;
+			} 
 		}
-	}
 
-	public void close(){
-		this.chatting = false;
-		Thread.interrupted();
 	}
 }

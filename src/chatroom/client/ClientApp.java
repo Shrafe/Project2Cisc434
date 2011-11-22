@@ -47,12 +47,13 @@ public class ClientApp extends JApplet{
 	private ObjectOutputStream oos;
 	private Socket socket;
 	
-	private ClientChatThread clientChatHandler;
+	private Thread clientChatHandler;
 
 	public ClientApp (JFrame frame, String hostname, int port) {
 		try{
 			this.socket = new Socket(hostname, port);
 			this.oos = new ObjectOutputStream(socket.getOutputStream());
+			oos.flush();
 			this.ois = new ObjectInputStream(socket.getInputStream());
 			this.frame = frame;
 		} catch (Exception e){
@@ -193,7 +194,7 @@ public class ClientApp extends JApplet{
 			frame.add(components.get(i));
 		}
 		
-		clientChatHandler = new ClientChatThread(chatHistory, ois);
+		clientChatHandler = new Thread(new ClientChatThread(chatHistory, ois));
 		clientChatHandler.start();
 		//getContentPane().add(frame);
 	}
@@ -414,12 +415,11 @@ public class ClientApp extends JApplet{
 
 	// Handles the Leave Room button click event
 	class ExitListener implements ActionListener {
-		@SuppressWarnings("deprecation")
 		public void actionPerformed(ActionEvent e) {
 			// TODO: Clear the components currently in the frame
 			try{
 				// stop the thread managing the chat
-				clientChatHandler.close();
+				clientChatHandler.interrupt();
 				oos.writeObject("4");
 				String [] rooms = (String[])ois.readObject();
 				roomList = new JList(rooms); // dirty!
