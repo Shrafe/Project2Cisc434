@@ -1,21 +1,19 @@
 package chatroom.server;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
-public class MsgObj {
+public class MsgObj implements Serializable{
 
-	// For entering or exiting a room
+	// For entering or exiting a room ##TOM: don't understand the need for these
 	public static final byte exiting = 0;
 	public static final byte entering = 1;
 	public static final byte existingUser = 2;
 	public static final byte newUser = 3;
 	
 	private byte msgType = 0;
-	private String user = null;
-	private String password = null;
-	private String message = null;
-	private String room = null;
-	private String target = null;
+	private ArrayList<Object> payload; // use an ArrayList and put the interpretation on the server. object because it allows us to do dirty things
 	private List<String> targets = null;
 	
 	/**
@@ -23,26 +21,32 @@ public class MsgObj {
 	 * to the Chat Room listing
 	 */
 	public MsgObj () {
-		this.msgType = 0;
+		this.payload = new ArrayList<Object>();
 	}
+	
+	//## TOM: so many constructors :O how about we generalize it
+	// Changes Made:
+	// Use arraylist for all params
+	// manually set the msgType for desired purpose in the class sending the message
+	// avoids having logic in this class to set it
+	// puts the interpretation of data on the receiving class, not this one
+	// use one constructor. cleaner that way.
 	
 	/**
 	 * Creates a message for Entering or Leaving a Chat Room
 	 * 
 	 * @param room - The room the user is joining/leaving
-	 * @param user - The user who is joining/leaving
+	 * @param user - The user who is joining/leaving (the user is already associated with the server thread,
+	 * once validated. we don't need to indicate each message object who is doing what. that's already known
 	 * @param direction - Number indicating if they're exiting or leaving
 	 */
-	public MsgObj (String room, String user, byte direction) {
-		
-		this.room = room;
-		this.user = user;
-		
+	public MsgObj (String room, byte direction) {
+		this.payload.add(room);
 		if (direction == exiting) {
-			msgType = 1;
+			this.msgType = 1;
 		}
 		else {
-			msgType = 2;
+			this.msgType = 2;
 		}
 	}
 	
@@ -51,83 +55,52 @@ public class MsgObj {
 	 * 
 	 * @param msg - The message to post
 	 * @param room - The Chat Room to post to
-	 * @param user - The user who wishes to post to the room
 	 */
-	public MsgObj (String msg, String room, String user) {
-		
-		this.message = msg;
-		this.room = room;
-		this.user = user;
-		msgType = 3;
-	}
-	
-	/**
-	 * Creates a message for whispering a target user
-	 * 
-	 * @param msg - The message to post
-	 * @param room - The Chat Room to post to
-	 * @param user - The user who wishes to post to the room
-	 * @param target -  The target user who the sending user wishes to send a message to
-	 */
-	public MsgObj (String msg, String room, String user, String target) {
-		
-		this.message = msg;
-		this.room = room;
-		this.user = user;
-		this.target = target;
-		msgType = 4;
+	public MsgObj (String msg, String room) {
+		this.payload.add(room);
+		this.payload.add(msg);
+		this.msgType = 3;
 	}
 	
 	/**
 	 * Creates a message for whispering a selection of targeted users
+	 * ##TOM: We can use this for single whispers too, targets just is of length 1
 	 * 
 	 * @param msg - The message to post
 	 * @param room - The Chat Room to post to
-	 * @param user - The user who wishes to post to the room
 	 * @param targets - The list of target users who the sending user wishes to send a message to
 	 */
-	public MsgObj (String msg, String room, String user, List<String> targets) {
-		
-		this.message = msg;
-		this.room = room;
-		this.user = user;
+	public MsgObj (String msg, String room,  List<String> targets) {
+		this.payload.add(room);
+		this.payload.add(msg);
 		this.targets = targets;
-		msgType = 5;
+		this.msgType = 4;
 	}
 	
-	public MsgObj (byte userexists, String username, String password) {
+	/** 
+	 * Method that either gives information to validate a user, or to create a new user
+	 * @param username
+	 * @param password
+	 * @param userexists
+	 */
 		
-		this.user = username;
-		this.password = password;
-		
-		if (userexists == existingUser) {
-			msgType = 6;
-		} else {
-			msgType = 7;
-		}
+	public void addToPayload(Object toAdd){
+		this.payload.add(toAdd);
+	}
+	
+	public void setType(byte type){
+		this.msgType = type;
 	}
 	
 	public byte getType() {
-		return msgType;
+		return this.msgType;
 	}
 	
-	public String getMessage() {
-		return message;
-	}
-	
-	public String getUser() {
-		return user;
-	}
-	
-	public String getTarget() {
-		return target;
+	public ArrayList<Object> getPayload(){
+		return this.payload;
 	}
 	
 	public List<String> getAllTargets() {
-		return targets;
-	}
-	
-	public String getRoom() {
-		return room;
+		return this.targets;
 	}
 }

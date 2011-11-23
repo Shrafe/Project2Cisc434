@@ -28,13 +28,23 @@ public class Chatroom extends Thread implements Serializable{
 		clientNames = loadClientNames(clients.keySet());
 	}
 
+	/** 
+	 * Sends a message to all clients in the client list. constructs a MsgObj with the type 
+	 * value of 3, and sends this same object to all clients
+	 * @param message
+	 * @throws IOException
+	 */
 	public void sendToClients(String message) throws IOException{
+		MsgObj sendMessage = new MsgObj();
+		sendMessage.addToPayload(message);
+		byte type = 3;
+		sendMessage.setType(type);
 		Set<String> keys = clients.keySet();
 		for (String client : keys){
-			clients.get(client).writeObject(message);
+			clients.get(client).writeObject(sendMessage);
 		}
 	}
-	
+
 	public String[] getClientList() throws IOException{
 		return clientNames;
 	}
@@ -54,7 +64,7 @@ public class Chatroom extends Thread implements Serializable{
 			}*/
 		}
 	}
-	
+
 	public String[] loadClientNames(Set<String> keys){
 		Object[] objects = keys.toArray();
 		String[] returnVal = new String[objects.length];	

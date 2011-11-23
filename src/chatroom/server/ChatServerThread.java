@@ -6,10 +6,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 
 public class ChatServerThread implements Runnable {
 	private Socket socket;
-	static int count; // REMOVE THIS
 	private ChatServer chatServer;
 	private ObjectOutputStream oos;
 	private ObjectInputStream ois;
@@ -37,78 +37,52 @@ public class ChatServerThread implements Runnable {
 	 * Case 2: User Entering Chat Room
 	 * Case 3: Posting to a Chat room
 	 * Case 4: Whispering one target user
-	 * Case 5: Whispering many target users
-	 * Case 6: Existing user wishes to log in
-	 * Case 7: New user wishes to register
+	 * Case 5: Existing user wishes to log in
+	 * Case 6: New user wishes to register
+	 * Case 7: Request for list of users 
 	 */
-	
+
 	public void run(){
-		byte messageType;
-		try {
-			while (connected){
-				messageType = getMessageType();
-				switch (messageType){
-					case 0: 
-						
-						break;
-					case 1:
-						
-						break;
-					case 2:
-						joinRoom();
-						break;
-					case 3:
-						sendMessage();
-						break;
-					case 4:
-						sendChatrooms();
-						break;
-					case 5:
-						sendUsers();
-						break;
-					case 6:
-						validUser();
-						break;
-					case 7:
-						createUser();
-						break;
+
+		while (true){
+			try {
+				MsgObj message = (MsgObj) ois.readObject();
+
+				switch (message.getType()){
+				case 0: 
+					sendChatrooms();
+					break;
+				case 1:
+					leaveRoom(message);
+					break;
+				case 2:
+					joinRoom(message);
+					break;
+				case 3:
+					sendMessage(message);
+					break;
+				case 4:
+					whisper(message);
+					break;
+				case 5:
+					validUser(message);
+					break;
+				case 6:
+					createUser(message);
+					break;
+				case 7:
+					sendUsers();
+					break;
 				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e){
-			e.printStackTrace();
-		} 
-	}
-	
-	/** 
-	 * Method that returns the value that precedes any date for all communication with the server
-	 * 0: login with the following data
-	 * 1: create a new user with the following data
-	 * 2: join a room with the following data
-	 * 3: send a message with the following data
-	 * 4: send me a list of chatrooms
-	 * 5: send me a list of users
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws ClassNotFoundException
-	 */
-	
-	public byte getMessageType() throws IOException, ClassNotFoundException{
-		byte result = -1;
-		try{
-			result = ((MsgObj)ois.readObject()).getType();
-		} catch (SocketException e){
-			oos.close();
-			ois.close();
-			socket.close();
-			this.connected = false; //dirty again
-			System.out.println("Client disconnected from: "+socket);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e){
+				e.printStackTrace();
+			} 
 		}
-		return result;
+
 	}
-	
+
 	/**
 	 * Method that checks whether or not the data given represents a valid user
 	 * 
@@ -127,7 +101,8 @@ public class ChatServerThread implements Runnable {
 	 * @throws ClassNotFoundException
 	 */
 
-	public void validUser() throws IOException, ClassNotFoundException{
+	public void validUser(MsgObj message) throws IOException, ClassNotFoundException{
+		ArrayList<Object> payload = message.getPayload();
 		String checkUsername = (String)ois.readObject();
 		String checkPassword = (String)ois.readObject();
 		if (chatServer.users.containsKey(checkUsername)){
@@ -147,7 +122,7 @@ public class ChatServerThread implements Runnable {
 			oos.writeObject(null);
 		}
 	}
-	
+
 	/**
 	 * Method that adds a new user to the chatserver. 
 	 * 
@@ -162,15 +137,19 @@ public class ChatServerThread implements Runnable {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	
-	public void createUser() throws IOException, ClassNotFoundException{
-		String newUsername = (String)ois.readObject();
-		String newPassword = (String)ois.readObject();
+
+	public void createUser(MsgObj message) throws IOException, ClassNotFoundException{
+		ArrayList<Object> payload = message.getPayload();
+		String newUsername = (String)payload.get(0); // first value in the payload is the username;
+		String newPassword = (String)payload.get(1); // second is the password
 		String result = chatServer.addUser(newUsername, newPassword);
 		System.out.println("New user created: "+ newUsername + " | Result of operation was: "+result);
-		oos.writeObject(result);		
+		MsgObj sendMessage = new MsgObj();
+		sendMessage.addToPayload(result);
+		byte type = 3;
+		oos.writeObject(sendMessage);		
 	}
-	
+
 	/** 
 	 * Method that adds the user associated with this thread to the named chatroom
 	 * 
@@ -181,15 +160,16 @@ public class ChatServerThread implements Runnable {
 	 * list of users in this chatroom 
 	 * 
 	 */
-	
-	public void joinRoom() throws IOException, ClassNotFoundException{
-		String crn = (String)ois.readObject();		
-		chatServer.joinChatroom(crn, oos, this.username); 
+
+	public void joinRoom(MsgObj message) throws IOException, ClassNotFoundException{
+		ArrayList<Object> payload = message.getPayload();
+		String crn = (String) payload.get(0);
+		chatServer.joinChatroom(crn, oos, this.username);
 		System.out.println("User "+username+" joined room: "+ crn);
 		this.crn = crn;
 		sendUsers();
 	}
-	
+
 	/**
 	 * Method that sends the data from the client as a message to all
 	 * clients connected to the chatroom that this client is in
@@ -203,11 +183,14 @@ public class ChatServerThread implements Runnable {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	
-	public void sendMessage() throws IOException, ClassNotFoundException{
-		String message = (String)ois.readObject();
+
+	public void sendMessage(MsgObj message) throws IOException, ClassNotFoundException{
+		// we know what to do. the payload is going to contain a single string, containing the 
+		// message he wants to send to the chatroom he's currently in. 
+		ArrayList<Object> payload = message.getPayload();
+		String msg = (String)payload.get(0);
 		System.out.println("Message received from user: "+this.username+" at: "+this.socket);
-		chatServer.chatRooms.get(this.crn).sendToClients(message);	
+		chatServer.chatRooms.get(this.crn).sendToClients(msg);	
 	}
 
 	/**
@@ -223,17 +206,20 @@ public class ChatServerThread implements Runnable {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	
+
 	public void sendChatrooms() throws IOException, ClassNotFoundException{
-		oos.writeObject(chatServer.chatRoomNames);
-		// for testing
-		chatServer.createChatroom("test"+count);
-		count++;
+		//send this client a list of chatrooms. easy enough
+		MsgObj sendMessage = new MsgObj();
+		sendMessage.addToPayload(chatServer.chatRoomNames);
+		byte type = 0; // is there a better way to do this?
+		sendMessage.setType(type);
+		oos.writeObject(sendMessage);
 		System.out.println("Sent chatroom list to: "+this.username+" at: "+this.socket);
 	}
-	
+
 	/**
 	 * Same as above, but sends the list of users, not chatrooms
+	 * will fail if crn is null, but we should never be requesting refreshes if crn is null
 	 * 
 	 * Input from socket: 
 	 * none
@@ -245,9 +231,15 @@ public class ChatServerThread implements Runnable {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	
-	public void sendUsers() throws IOException, ClassNotFoundException{
-		oos.writeObject(this.chatServer.chatRooms.get(crn).getClientList());	
+
+	public void sendUsers(){
+		MsgObj sendMessage = new MsgObj();
+		// dirty tricks: payload in MsgObj is of type Object; we can add the entire list at once. 
+		// do it and since we can tell the reciever what to do, we can be sure of the casting clientside
+		sendMessage.addToPayload(this.chatServer.chatRooms.get(this.crn).getClientList());
+		byte type = 1; // argh really?
+		sendMessage.setType(type);
+		oos.writeObject(sendMessage);	
 		System.out.println("Sent user list to: "+this.username+" at: "+this.socket);
 	}
 }

@@ -1,8 +1,15 @@
 package chatroom.client;
 
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -11,6 +18,8 @@ import java.net.SocketException;
 
 import javax.swing.*;
 import javax.swing.event.*;
+
+import chatroom.server.MsgObj;
 
 public class ClientApp extends JApplet{
 
@@ -22,8 +31,8 @@ public class ClientApp extends JApplet{
 	private int btnheight = 35;
 	private String chatRoom = "Default";
 	private String user;
-	private DefaultListModel<String> userListModel;
-	private DefaultListModel<String> roomListModel;
+	private DefaultListModel userListModel;
+	private DefaultListModel roomListModel;
 
 	private JTextField username;
 	private JPasswordField password;
@@ -31,13 +40,13 @@ public class ClientApp extends JApplet{
 	private JLabel chatLabel;
 	private JButton exit;
 	private JScrollPane userScroll;
-	private JList<String> userList;
+	private JList userList;
 	private JScrollPane historyScroll;
 	private JTextArea chatHistory;
 	private JTextArea chatBox;
 	private JButton send;
 
-	private JList<String> roomList;
+	private JList roomList;
 	private JScrollPane roomScroll;
 
 	private ArrayList<Component> components;
@@ -46,7 +55,10 @@ public class ClientApp extends JApplet{
 	private ObjectOutputStream oos;
 	private Socket socket;
 	
-	private Thread clientChatHandler;
+	private ClientComThread clientComHandler;
+	
+	private final Object lock = new Object(); // use this to signal that the response has been received 
+											  // in the communication handler
 
 	public ClientApp (JFrame frame, String hostname, int port) {
 		try{
@@ -55,9 +67,15 @@ public class ClientApp extends JApplet{
 			oos.flush();
 			this.ois = new ObjectInputStream(socket.getInputStream());
 			this.frame = frame;
+			clientComHandler = new ClientComThread(this, lock);
+			clientComHandler.start();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
+	}
+	
+	public ObjectInputStream getOis(){
+		return this.ois;
 	}
 
 	/**
@@ -149,7 +167,7 @@ public class ClientApp extends JApplet{
 
 		////////////////////////////////////////////////////////////
 		// list will eventually accept data that was returned by the server
-		userListModel = new DefaultListModel<String>();
+		userListModel = new DefaultListModel();
 		//userListModel.addElement("All");
 		//userListModel.addElement("User1");
 		//userListModel.addElement("User2");
@@ -218,9 +236,7 @@ public class ClientApp extends JApplet{
 		for (int i = 0; i < components.size(); i++) {
 			frame.add(components.get(i));
 		}
-		
-		clientChatHandler = new Thread(new ClientChatThread(chatHistory, ois));
-		clientChatHandler.start();
+
 	}
 	
 	/**
@@ -266,13 +282,13 @@ public class ClientApp extends JApplet{
 			e1.printStackTrace();
 		}
 		
-		roomListModel = new DefaultListModel<String>();
+		roomListModel = new DefaultListModel();
 
 		for (int i = 0; i < rooms.length; i++) {
 			roomListModel.addElement(rooms[i]);
 		}
 		
-		roomList = new JList<String>(roomListModel);
+		roomList = new JList(roomListModel);
 		roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		roomList.addListSelectionListener(new RoomSelectionListener());
 
@@ -308,6 +324,29 @@ public class ClientApp extends JApplet{
 			frame.add(components.get(i));
 		}
 	}
+	
+	public List<String> makeList(Object[] in){
+		List<String> retVal = new ArrayList<String>();
+		for (Object a : in){
+			retVal.add((String)a);
+		}
+		return retVal;
+	}
+	
+
+	public String charArrToString(char [] arr){
+		String result = "";
+		for (char a : arr){
+			result+=a;
+		}
+		return result;
+	}
+	
+	public void await() throws InterruptedException{
+		synchronized(lock){
+			lock.wait();
+		}
+	}
 
 	/**
 	 * Clear every current component from the frame without destroying
@@ -336,13 +375,13 @@ public class ClientApp extends JApplet{
 				String[] rooms = (String[])ois.readObject();
 				
 				roomScroll.remove(roomList);
-				roomListModel = new DefaultListModel<String>();
+				roomListModel = new DefaultListModel();
 				
 				for (int i = 0; i < rooms.length; i++) {
 					roomListModel.addElement(rooms[i]);
 				}
 				
-				roomList = new JList<String>(roomListModel);
+				roomList = new JList(roomListModel);
 				roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 				roomList.addListSelectionListener(new RoomSelectionListener());
 				
@@ -374,7 +413,7 @@ public class ClientApp extends JApplet{
 			// Check that the user has selected a room
 			else {
 				// Set the local variable for chat room name
-				chatRoom = roomList.getSelectedValue();
+				chatRoom = (String)roomList.getSelectedValue();
 			}
 			
 			MsgObj message = new MsgObj(chatRoom, user, MsgObj.entering);
@@ -395,7 +434,6 @@ public class ClientApp extends JApplet{
 		}
 	}
 
-
 	/**
 	 * Listener class for sending messages to the server. Creates a thread to handle
 	 * the actual sending
@@ -414,7 +452,7 @@ public class ClientApp extends JApplet{
 					message = new MsgObj(
 							user + ": " + chatBox.getText(),
 							chatRoom, user,
-							userList.getSelectedValue()
+							(String)userList.getSelectedValue()
 							);
 				}
 				else {
@@ -427,7 +465,7 @@ public class ClientApp extends JApplet{
 				// Whisper multiple targets
 				message = new MsgObj(
 						user + ": " + chatBox.getText(),
-						chatRoom, user,	userList.getSelectedValuesList());
+						chatRoom, user,	makeList(userList.getSelectedValues()));
 			}
 			
 			// Send the message
@@ -444,14 +482,6 @@ public class ClientApp extends JApplet{
 
 			chatBox.setText("");
 		}
-	}
-
-	public String charArrToString(char [] arr){
-		String result = "";
-		for (char a : arr){
-			result+=a;
-		}
-		return result;
 	}
 
 	/**
@@ -520,7 +550,7 @@ public class ClientApp extends JApplet{
 			// Send message
 			try {
 				// stop the thread managing the chat
-				clientChatHandler.interrupt();
+				clientComHandler.interrupt();
 				oos.writeObject(message);
 			} catch (SocketException ex){
 				JOptionPane.showMessageDialog(frame, "The server has crashed / is not responsive.");
