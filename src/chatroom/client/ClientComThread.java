@@ -37,7 +37,7 @@ public class ClientComThread extends Thread {
 		 * the getType in the MsgObj 
 		 * Case 0: Received a list of chatrooms 
 		 * Case 1: Received a list of users
-		 * Case 2: Received result of login attempt
+		 * Case 2: Received failed login attempt
 		 * Case 3: Received result of create user attempt 
 		 * Case 4: Received a message 
 		 * 

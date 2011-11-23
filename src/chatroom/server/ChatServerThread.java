@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class ChatServerThread implements Runnable {
 	private Socket socket;
@@ -59,10 +60,10 @@ public class ChatServerThread implements Runnable {
 					joinRoom(message);
 					break;
 				case 3:
-					sendMessage(message);
+					sendMessage(message, false);
 					break;
 				case 4:
-					whisper(message);
+					sendMessage(message, true);
 					break;
 				case 5:
 					validUser(message);
@@ -103,8 +104,8 @@ public class ChatServerThread implements Runnable {
 
 	public void validUser(MsgObj message) throws IOException, ClassNotFoundException{
 		ArrayList<Object> payload = message.getPayload();
-		String checkUsername = (String)ois.readObject();
-		String checkPassword = (String)ois.readObject();
+		String checkUsername = (String)payload.get(0); // we know that the username is first
+		String checkPassword = (String)payload.get(1); // and the password is second
 		if (chatServer.users.containsKey(checkUsername)){
 			if (chatServer.users.get(checkUsername).equals(checkPassword)){
 				this.username = checkUsername;
@@ -114,13 +115,24 @@ public class ChatServerThread implements Runnable {
 			}
 			else {
 				System.err.println("User: "+checkUsername+" validation failed from: "+socket);
-				oos.writeObject(null);
+				loginFailed();
 			}
 		}
 		else {
 			System.err.println("User: "+checkUsername+" gave wrong credentials from: "+socket);
-			oos.writeObject(null);
+			loginFailed();
 		}
+	}
+
+	/**
+	 * Helper to send an empty MsgObj with type = 2, to indicate a failed login attempt.
+	 * no message is sent when login is a success; we simply recieve the list of chatrooms
+	 * and go on our way 
+	 */
+	public void loginFailed(){
+		MsgObj sendMessage = new MsgObj();
+		byte type = 2;
+		oos.writeObject(sendMessage);
 	}
 
 	/**
@@ -169,7 +181,16 @@ public class ChatServerThread implements Runnable {
 		this.crn = crn;
 		sendUsers();
 	}
-
+	
+	/**
+	 * method that nulls out the crn for this thread
+	 */
+	public void leaveRoom(){
+		chatServer.chatRooms.get(this.crn).removeClient(this.username); // remove us from the chatroom so we don't get anymore messages from it
+		this.crn = ""; // empty string for crn
+	}
+	
+	
 	/**
 	 * Method that sends the data from the client as a message to all
 	 * clients connected to the chatroom that this client is in
@@ -184,13 +205,18 @@ public class ChatServerThread implements Runnable {
 	 * @throws ClassNotFoundException
 	 */
 
-	public void sendMessage(MsgObj message) throws IOException, ClassNotFoundException{
+	public void sendMessage(MsgObj message, boolean isWhisper) throws IOException, ClassNotFoundException{
 		// we know what to do. the payload is going to contain a single string, containing the 
 		// message he wants to send to the chatroom he's currently in. 
 		ArrayList<Object> payload = message.getPayload();
 		String msg = (String)payload.get(0);
+		List<String> clients = null;
+		if (isWhisper){
+			// get the list of clients we should send to
+			clients = (List<String>) payload.get(1);
+		}
 		System.out.println("Message received from user: "+this.username+" at: "+this.socket);
-		chatServer.chatRooms.get(this.crn).sendToClients(msg);	
+		chatServer.chatRooms.get(this.crn).sendToClients(msg, clients);	
 	}
 
 	/**

@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 public class Chatroom extends Thread implements Serializable{
@@ -23,9 +24,14 @@ public class Chatroom extends Thread implements Serializable{
 		this.numClients = 0;
 	}
 
-	public void addClient(ObjectOutputStream oos, String clientName) throws IOException{
+	public void addClient(ObjectOutputStream oos, String clientName){
 		clients.put(clientName, oos);
 		clientNames = loadClientNames(clients.keySet());
+	}
+	
+	public void removeClient(String clientName) {
+		clients.remove(clientName);
+		clientNames = loadClientNames(clients.skeySet());
 	}
 
 	/** 
@@ -34,15 +40,25 @@ public class Chatroom extends Thread implements Serializable{
 	 * @param message
 	 * @throws IOException
 	 */
-	public void sendToClients(String message) throws IOException{
+	public void sendToClients(String message, List<String> whisperClients) throws IOException{
 		MsgObj sendMessage = new MsgObj();
 		sendMessage.addToPayload(message);
 		byte type = 3;
 		sendMessage.setType(type);
 		Set<String> keys = clients.keySet();
-		for (String client : keys){
-			clients.get(client).writeObject(sendMessage);
+		if (whisperClients != null){
+			// we have clients to whisper, use those values instead
+			for (String client : whisperClients){
+				clients.get(client).writeObject(sendMessage);
+			}
 		}
+		else {
+			// this message isn't a whisper; send to all clients in the chatroom
+			for (String client : keys){
+				clients.get(client).writeObject(sendMessage);
+			}
+		}
+			 
 	}
 
 	public String[] getClientList() throws IOException{
@@ -59,9 +75,6 @@ public class Chatroom extends Thread implements Serializable{
 		finally{
 			clients.remove(socket);
 			clientNames = loadClientNames(clients.keySet());
-			/*			if (numClients == 0){
-				server.removeChatroom(this.name);
-			}*/
 		}
 	}
 
