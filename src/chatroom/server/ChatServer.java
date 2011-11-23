@@ -96,7 +96,7 @@ public class ChatServer {
 		Set<String> keySet = this.users.keySet();
 		PrintWriter out = null;
 		try{
-			out = new PrintWriter(new FileWriter("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
+			out = new PrintWriter(new FileWriter("C:\\Users\\Bryce\\workspace\\CISC434Phase2\\users.txt"));
 			for (String key : keySet){
 				out.println(key+" "+this.users.get(key));
 			}
@@ -115,7 +115,7 @@ public class ChatServer {
 		HashMap<String, String> returnVal = new HashMap<String,String>();
 		String input;
 		try{
-			BufferedReader userList = new BufferedReader(new FileReader("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
+			BufferedReader userList = new BufferedReader(new FileReader("C:\\Users\\Bryce\\workspace\\CISC434Phase2\\users.txt"));
 			while((input = userList.readLine())!=null){
 				String[] values = input.split(" ");
 				returnVal.put(values[0], values[1]);

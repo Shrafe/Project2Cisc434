@@ -34,8 +34,10 @@ public class ClientFrame extends JFrame {
 	};
 	
 	public static void main(String args[]) {
-		int port = Integer.parseInt(args[0]);
-		String hostname = args[1];
+		//int port = Integer.parseInt(args[0]);
+		//String hostname = args[1];
+		int port = 4444;
+		String hostname = "localhost";
 		ClientFrame.start("ClientUI", hostname, port);
 	}
 }

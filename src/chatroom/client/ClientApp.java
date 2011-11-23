@@ -1,7 +1,6 @@
 package chatroom.client;
 
 import java.util.*;
-import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
@@ -23,8 +22,8 @@ public class ClientApp extends JApplet{
 	private int btnheight = 35;
 	private String chatRoom = "Default";
 	private String user;
-	private DefaultListModel userListModel;
-	private DefaultListModel roomListModel;
+	private DefaultListModel<String> userListModel;
+	private DefaultListModel<String> roomListModel;
 
 	private JTextField username;
 	private JPasswordField password;
@@ -32,17 +31,17 @@ public class ClientApp extends JApplet{
 	private JLabel chatLabel;
 	private JButton exit;
 	private JScrollPane userScroll;
-	private JList userList;
+	private JList<String> userList;
 	private JScrollPane historyScroll;
 	private JTextArea chatHistory;
 	private JTextArea chatBox;
 	private JButton send;
 
-	private JList roomList;
+	private JList<String> roomList;
 	private JScrollPane roomScroll;
 
 	private ArrayList<Component> components;
-
+	
 	private ObjectInputStream ois;
 	private ObjectOutputStream oos;
 	private Socket socket;
@@ -61,6 +60,9 @@ public class ClientApp extends JApplet{
 		}
 	}
 
+	/**
+	 * Initial method that creates the Login screen.
+	 */
 	public void init() {
 
 		components = new ArrayList<Component>();
@@ -69,48 +71,59 @@ public class ClientApp extends JApplet{
 		frame.setResizable(false);
 		getContentPane().setBackground(Color.lightGray);
 
+		// Create the Username text field
 		username = new JTextField();
 		username.setBounds(xspacing, height/4 , width-8*xspacing, txtheight);
-
-		password = new JPasswordField();
-		password.setBounds(xspacing, height/2, width-8*xspacing, txtheight);
-
+		
+		// Create the Username label
 		JLabel userLabel = new JLabel();
 		userLabel.setText("Username");
 		userLabel.setBounds(username.getX() + username.getWidth() + xspacing,
 				username.getY(), 3*xspacing, txtheight);
-
+		
+		// Create the Password text field
+		password = new JPasswordField();
+		password.setBounds(xspacing, height/2, width-8*xspacing, txtheight);
+		
+		// Create the Password label
 		JLabel passLabel = new JLabel();
 		passLabel.setText("Password");
 		passLabel.setBounds(password.getX() + password.getWidth() + xspacing,
 				password.getY(), 3*xspacing, txtheight);
-
+		
+		// Create the Login button
 		JButton login = new JButton();
 		login.setText("Login");
 		login.setBounds(xspacing, 3*height/4, width/3, btnheight);
 		login.addActionListener(new LoginListener());
-
+		
+		// Create the New User button
 		JButton newUser = new JButton();
 		newUser.setText("New User?");
 		newUser.setBounds(login.getWidth() + 3*xspacing, 3*height/4, width/3, btnheight);
 		newUser.addActionListener(new NewUserListener());
-
+		
+		// Add every new component to a list so they can be easily removed
+		// later with a single method
 		components.add(username);
 		components.add(password);
 		components.add(userLabel);
 		components.add(passLabel);
 		components.add(login);
 		components.add(newUser);
-
+		
+		// Add every new component to the frame
 		for (int i = 0; i < components.size(); i++) {
 			frame.add(components.get(i));
 		}
 	}
 
-	// Create the chat room window
+	/**
+	 * Creates the actual Chat Room window where users will
+	 * be able to send and receive messages
+	 */
 	private void chatRoomWindow() {
-
-		//ydim = ydim/2;
+		
 		width = 500;
 		height = 700;
 		int[] rowHeights = {50, 550, 100};
@@ -134,8 +147,20 @@ public class ClientApp extends JApplet{
 		exit.setText("Leave Room");
 		exit.addActionListener(new ExitListener());
 
+		////////////////////////////////////////////////////////////
+		// list will eventually accept data that was returned by the server
+		userListModel = new DefaultListModel<String>();
+		//userListModel.addElement("All");
+		//userListModel.addElement("User1");
+		//userListModel.addElement("User2");
+		//userListModel.addElement("User3");
+		//userListModel.addElement("User4");
+		
+		// Not too sure how you were getting lists of users because you had deleted
+		// this but not added anything.
+		////////////////////////////////////////////////////////////
 
-
+		userList = new JList(userListModel);
 		userList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		userList.addListSelectionListener(new UserSelectionListener());
 
@@ -196,12 +221,15 @@ public class ClientApp extends JApplet{
 		
 		clientChatHandler = new Thread(new ClientChatThread(chatHistory, ois));
 		clientChatHandler.start();
-		//getContentPane().add(frame);
 	}
-
+	
+	/**
+	 * Creates the Chat Room Selection window where users will be able to
+	 * Join Rooms, Refresh the list of rooms, and create new Rooms (maybe)
+	 */
 	private void chatSelectionWindow() {
 
-		// I have no idea why but unless it's resized the new components don't appear
+		// I have no idea why but unless the frame is resized the new components don't appear
 		width = 300;
 		height = 400;
 
@@ -218,15 +246,33 @@ public class ClientApp extends JApplet{
 		gbl.columnWidths = columnWidths;
 		frame.setLayout(gbl);
 
-		////////////////////////////////////////////////////////////
-		// list will eventually accept data that was returned by the server
-		roomListModel = new DefaultListModel();
-		roomListModel.addElement("Room1");
-		roomListModel.addElement("Room2");
-		roomListModel.addElement("Room3");
-		roomListModel.addElement("Room4");
-		////////////////////////////////////////////////////////////
+		String[] rooms = {};
+		MsgObj message = new MsgObj();
+		
+		try {
+			// Ask the server for a list of rooms
+			oos.writeObject(message);
+			
+			// Wait for the list to come back
+			rooms = (String[])ois.readObject();
+			
+			for (int i = 0; i < rooms.length; i++) {
+				roomListModel.addElement(rooms[i]);
+			}
+		
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		roomListModel = new DefaultListModel<String>();
 
+		for (int i = 0; i < rooms.length; i++) {
+			roomListModel.addElement(rooms[i]);
+		}
+		
+		roomList = new JList<String>(roomListModel);
 		roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		roomList.addListSelectionListener(new RoomSelectionListener());
 
@@ -263,7 +309,10 @@ public class ClientApp extends JApplet{
 		}
 	}
 
-	// Clear every component from the current frame
+	/**
+	 * Clear every current component from the frame without destroying
+	 * it outright
+	 */
 	private void clearComponents() {
 		for (int i = 0; i < components.size(); i++) {
 			frame.remove(components.get(i));
@@ -271,13 +320,130 @@ public class ClientApp extends JApplet{
 
 		components.clear();
 	}
-
-	public List<String> makeList(Object[] in){
-		List<String> retVal = new ArrayList<String>();
-		for (Object a : in){
-			retVal.add((String)a);
+	
+	/**
+	 * Listener for the Refresh button on the Chat Room
+	 * Selection window
+	 */
+	class RefreshListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			
+			MsgObj message = new MsgObj();
+			
+			try {
+				oos.writeObject(message);
+				
+				String[] rooms = (String[])ois.readObject();
+				
+				roomScroll.remove(roomList);
+				roomListModel = new DefaultListModel<String>();
+				
+				for (int i = 0; i < rooms.length; i++) {
+					roomListModel.addElement(rooms[i]);
+				}
+				
+				roomList = new JList<String>(roomListModel);
+				roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+				roomList.addListSelectionListener(new RoomSelectionListener());
+				
+				
+				roomScroll.add(roomList);
+				roomScroll.setMinimumSize(new Dimension(300,200));
+				roomScroll.setMaximumSize(new Dimension(300,200));
+				
+			} catch (ClassNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
-		return retVal;
+	}
+	
+	/**
+	 * Listener for the **Join** button on the Chat Room
+	 * Selection window
+	 */
+	class JoinListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			
+			if (roomList.getSelectedIndex() == -1){
+				chatRoom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
+			}
+			// Check that the user has selected a room
+			else {
+				// Set the local variable for chat room name
+				chatRoom = roomList.getSelectedValue();
+			}
+			
+			MsgObj message = new MsgObj(chatRoom, user, MsgObj.entering);
+			
+			// Send the message
+			try {
+				oos.writeObject(message);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			
+			// Clear the Chat Room Selection window
+			clearComponents();
+			
+			// Launch the Chat Room window
+			chatRoomWindow();
+				
+		}
+	}
+
+
+	/**
+	 * Listener class for sending messages to the server. Creates a thread to handle
+	 * the actual sending
+	 */
+	class SendListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+
+			int size = userList.getSelectedIndices().length;
+			MsgObj message;
+
+			// One whisper or "All" users selected
+			if(size == 1) {
+
+				if (userList.getSelectedIndex() != 0) {
+					// Whisper the target
+					message = new MsgObj(
+							user + ": " + chatBox.getText(),
+							chatRoom, user,
+							userList.getSelectedValue()
+							);
+				}
+				else {
+					// Post to the room
+					message = new MsgObj(user + ": " + chatBox.getText(),
+							chatRoom, user);
+				}
+			}
+			else {
+				// Whisper multiple targets
+				message = new MsgObj(
+						user + ": " + chatBox.getText(),
+						chatRoom, user,	userList.getSelectedValuesList());
+			}
+			
+			// Send the message
+			try {
+				oos.writeObject(message);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			/////////////////////////////////////////////
+			// Testing that the message shows up in the box
+			//chatHistory.setText(chatHistory.getText() + "\n" + user + ": " + chatBox.getText());
+			/////////////////////////////////////////////
+
+			chatBox.setText("");
+		}
 	}
 
 	public String charArrToString(char [] arr){
@@ -288,82 +454,9 @@ public class ClientApp extends JApplet{
 		return result;
 	}
 
-	
-	// my idea with this didn't work, feel free to mess with it
-	public void refreshDisplay(){
-		for (Component com : components){
-			com.repaint();
-		}
-	}	
-
 	/**
-	 * Requests a new list of chatrooms, and puts them into the JList
-	 * 
-	 * @author TomW7
-	 *
+	 * Listener for the **Login** button on the Login window
 	 */
-	class RefreshListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			try{
-				oos.writeObject("4");
-				String[] rooms = (String[])ois.readObject();
-				roomList = new JList();
-				roomScroll = new JScrollPane(roomList);
-				refreshDisplay();
-			} catch (IOException ioe){
-				ioe.printStackTrace();
-			} catch (ClassNotFoundException cnfe){
-				cnfe.printStackTrace();
-			}
-		}
-	}
-
-	class JoinListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			try{
-				oos.writeObject("2"); // we're joining a room
-				if (roomList.getSelectedIndex() < 0){
-					chatRoom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
-				}
-				// Check that the user has selected a room
-				else {
-					// Set the local variable for chat room name
-					chatRoom = (String)roomList.getSelectedValue();
-				}
-				oos.writeObject(chatRoom); // send the name of the chatroom we wanna join
-				String [] users = (String[]) ois.readObject();
-				userList = new JList(users);
-				clearComponents();
-				chatRoomWindow();
-			} catch (Exception ex){
-				ex.printStackTrace();
-			}
-
-		}
-	}
-
-	/**
-	 * Listener class for sending messages to the server. Creates a thread to handle
-	 * the actual sending
-	 */
-	class SendListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			String message = null;
-			try{
-				// One whisper or "All" users selected
-				oos.writeObject("3"); // we're sending a message!
-
-				oos.writeObject(user+": "+chatBox.getText());
-
-			} catch(Exception ex){
-				ex.printStackTrace();
-			}
-			chatBox.setText("");
-		}
-	}
-
-
-	// Handles the Login button click event
 	class LoginListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			try{
@@ -389,7 +482,9 @@ public class ClientApp extends JApplet{
 		}
 	}
 
-	// Handles the New User button click event
+	/**
+	 * Listener for the **New User** button on the Login window
+	 */
 	class NewUserListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			try{
@@ -413,28 +508,29 @@ public class ClientApp extends JApplet{
 		}
 	}
 
-	// Handles the Leave Room button click event
+	/**
+	 * Listener for the **Leave Room** button on the
+	 * Chat Room window
+	 */
 	class ExitListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			// TODO: Clear the components currently in the frame
-			try{
+			
+			MsgObj message = new MsgObj(chatRoom, user, MsgObj.exiting);
+			
+			// Send message
+			try {
 				// stop the thread managing the chat
 				clientChatHandler.interrupt();
-				oos.writeObject("4");
-				String [] rooms = (String[])ois.readObject();
-				roomList = new JList(rooms); // dirty!
-				clearComponents();
-				chatSelectionWindow();
-			}
-			catch (SocketException ex){
+				oos.writeObject(message);
+			} catch (SocketException ex){
 				JOptionPane.showMessageDialog(frame, "The server has crashed / is not responsive.");
 				ex.printStackTrace();
 			} catch (IOException ioe) {
 				ioe.printStackTrace();
-			} catch (ClassNotFoundException cnfe) {
-				// TODO Auto-generated catch block
-				cnfe.printStackTrace();
 			}
+			
+			clearComponents();
+			chatSelectionWindow();
 		}
 	}
 
@@ -443,7 +539,6 @@ public class ClientApp extends JApplet{
 			// Probably a useless listening class
 		}
 	}
-
 	/**
 	 * Listener class for when the user clicks on a any user in the
 	 * list of users. Includes shift and ctrl selection, but does not

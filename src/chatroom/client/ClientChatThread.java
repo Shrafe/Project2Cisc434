@@ -15,7 +15,7 @@ import javax.swing.JTextArea;
  * @author TomW7
  *
  */
-public class ClientChatThread implements Runnable {
+public class ClientChatThread extends Thread {
 
 	private ObjectInputStream ois;
 	private JTextArea chatHistory;

@@ -1,4 +1,4 @@
-package chatroom.server;
+package server;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -32,25 +32,27 @@ public class ChatServerThread implements Runnable {
 	}
 
 	/**
-	 * Initial messages from client to server are
-	 * 1) Username 
-	 * 2) password
-	 * Followed by any number of 
-	 * 3) Chatroom name
-	 * 4) Any number of messages
+	 * Case 0: Request for list of Chat Rooms
+	 * Case 1: User Exiting Chat Room
+	 * Case 2: User Entering Chat Room
+	 * Case 3: Posting to a Chat room
+	 * Case 4: Whispering one target user
+	 * Case 5: Whispering many target users
+	 * Case 6: Existing user wishes to log in
+	 * Case 7: New user wishes to register
 	 */
 	
 	public void run(){
-		int messageType;
+		byte messageType;
 		try {
 			while (connected){
 				messageType = getMessageType();
 				switch (messageType){
 					case 0: 
-						validUser(); 
+						
 						break;
 					case 1:
-						createUser();
+						
 						break;
 					case 2:
 						joinRoom();
@@ -63,6 +65,12 @@ public class ChatServerThread implements Runnable {
 						break;
 					case 5:
 						sendUsers();
+						break;
+					case 6:
+						validUser();
+						break;
+					case 7:
+						createUser();
 						break;
 				}
 			}
@@ -87,10 +95,10 @@ public class ChatServerThread implements Runnable {
 	 * @throws ClassNotFoundException
 	 */
 	
-	public int getMessageType() throws IOException, ClassNotFoundException{
-		int result = -1;
+	public byte getMessageType() throws IOException, ClassNotFoundException{
+		byte result = -1;
 		try{
-			result = Integer.parseInt((String)ois.readObject());
+			result = ((MsgObj)ois.readObject()).getType();
 		} catch (SocketException e){
 			oos.close();
 			ois.close();
