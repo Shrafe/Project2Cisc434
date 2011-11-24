@@ -27,11 +27,13 @@ public class Chatroom extends Thread implements Serializable{
 	public void addClient(ObjectOutputStream oos, String clientName){
 		clients.put(clientName, oos);
 		clientNames = loadClientNames(clients.keySet());
+		updateUsers();
 	}
-
+	
 	public void removeClient(String clientName) {
 		clients.remove(clientName);
 		clientNames = loadClientNames(clients.keySet());
+		updateUsers();
 	}
 
 	/** 
@@ -39,7 +41,7 @@ public class Chatroom extends Thread implements Serializable{
 	 * everyone needs to know this great news!
 	 */
 
-	public void userJoined(){
+	public void updateUsers(){
 		MsgObj message = new MsgObj();
 		byte type = 1;
 		message.setType(type);
@@ -48,6 +50,7 @@ public class Chatroom extends Thread implements Serializable{
 		for (String client : keys){
 			try{
 				clients.get(client).writeObject(message);
+				System.out.println("Sent user list to: "+client);
 			}catch (IOException ioe){
 				ioe.printStackTrace();
 			}

@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -19,16 +20,18 @@ public class ChatServer {
 	protected ServerSocket serverSocket;
 	protected String[] chatRoomNames; // we keep this so we can quickly send a String array to the clients containing the names of chatrooms
 	protected HashMap<String, Chatroom> chatRooms;
-	protected HashMap<String, String> users;
+	protected HashMap<String, String> userCredentials;
+	protected ArrayList<ObjectOutputStream> clients;
 	protected int port;
 
 	public ChatServer(int port) throws IOException{
 		this.port = port;
 		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>();
 		this.chatRooms = chatRooms;
-		
+		ArrayList<ObjectOutputStream> clients = new ArrayList<ObjectOutputStream>();
+		this.clients = clients;
 		HashMap<String, String> users = loadUsers();
-		this.users = users;
+		this.userCredentials = users;
 		this.chatRoomNames = loadChatRoomNames();
 		acceptConnections();
 	}
@@ -59,22 +62,41 @@ public class ChatServer {
 			while(true){
 				Socket socket = serverSocket.accept();
 				System.out.println("Client connection from "+socket);
-				new Thread(new ChatServerThread(socket, this)).start();		
+				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());	
+				clients.add(oos);
+				new Thread(new ChatServerThread(socket,oos, ois, this)).start();		
 			}
 		}
 		catch (IOException e){
 			e.printStackTrace();
 		}
 	}
-
+	// tell everyone about this moment!
 	public void createChatroom(String crn){
 		chatRooms.put(crn, new Chatroom(crn, this));
 		chatRoomNames = loadChatRoomNames();
+		updateChatrooms();
 	}
 
 	public void removeChatroom(String crn){
 		chatRooms.remove(crn);
 		chatRoomNames = loadChatRoomNames();
+		updateChatrooms();
+	}
+	
+	public void updateChatrooms(){
+		MsgObj sendMessage = new MsgObj();
+		byte type = 0;
+		sendMessage.setType(type);
+		sendMessage.addToPayload(chatRoomNames);
+		for (ObjectOutputStream oos : clients){
+			try{
+				oos.writeObject(sendMessage);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+		}
 	}
 	
 
@@ -91,8 +113,8 @@ public class ChatServer {
 	
 	public String validateUser(String username, String password){
 		String returnVal = "f";
-		if (this.users.containsKey(username)){
-			if(this.users.get(username).equals(password)){
+		if (this.userCredentials.containsKey(username)){
+			if(this.userCredentials.get(username).equals(password)){
 				returnVal = "t";
 			}
 		}
@@ -102,8 +124,8 @@ public class ChatServer {
 	public String addUser(String username, String password){
 		String returnVal = "f";
 	
-		if (!this.users.containsKey(username)){
-			this.users.put(username, password);
+		if (!this.userCredentials.containsKey(username)){
+			this.userCredentials.put(username, password);
 			returnVal = "t";
 		}
 		writeUsersFile();
@@ -113,12 +135,12 @@ public class ChatServer {
 	public void writeUsersFile(){
 		// write out the new file
 		// TODO: parameterize
-		Set<String> keySet = this.users.keySet();
+		Set<String> keySet = this.userCredentials.keySet();
 		PrintWriter out = null;
 		try{
 			out = new PrintWriter(new FileWriter("C:\\Users\\Bryce\\workspace\\CISC434Phase2\\users.txt"));
 			for (String key : keySet){
-				out.println(key+" "+this.users.get(key));
+				out.println(key+" "+this.userCredentials.get(key));
 			}
 			out.close();
 		} catch (Exception e){

@@ -1,5 +1,6 @@
 package chatroom.client;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.GroupLayout;
 import javax.swing.JOptionPane;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class RoomSelectionWindow {
 
 	private JFrame frmChatroom;
+	private DefaultListModel roomListModel;
 	private JList roomList;
 	private ClientManager client;
 	private JLabel lblTitle;
@@ -34,8 +36,8 @@ public class RoomSelectionWindow {
 		return frmChatroom;
 	}
 
-	public JList getRoomList(){
-		return roomList;
+	public DefaultListModel getRoomListModel(){
+		return roomListModel;
 	}
 	
 	public JLabel getTitle(){
@@ -50,8 +52,9 @@ public class RoomSelectionWindow {
 		frmChatroom.setTitle("Select");
 		frmChatroom.setBounds(100, 100, 207, 318);
 		frmChatroom.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		roomList = new JList();
+		
+		this.roomListModel = new DefaultListModel();
+		this.roomList = new JList(roomListModel);
 
 		JButton btnJoin = new JButton("Join / Create");
 		btnJoin.addActionListener(new JoinListener());

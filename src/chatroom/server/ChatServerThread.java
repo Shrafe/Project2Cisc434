@@ -17,13 +17,15 @@ public class ChatServerThread implements Runnable {
 	private String crn; // the chatroom we're currently in
 	private boolean connected;
 
-	public ChatServerThread(Socket socket, ChatServer chatserver){
+	public ChatServerThread(Socket socket, ObjectOutputStream oos, ObjectInputStream ois, ChatServer chatserver){
 		this.connected = true;
 		this.socket = socket;
 		this.chatServer = chatserver;
 		try {
-			oos = new ObjectOutputStream(this.socket.getOutputStream());
-			ois = new ObjectInputStream(this.socket.getInputStream());
+			//this.oos = new ObjectOutputStream(this.socket.getOutputStream());
+			//ois = new ObjectInputStream(this.socket.getInputStream());
+			this.oos = oos;
+			this.ois = ois;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -38,7 +40,7 @@ public class ChatServerThread implements Runnable {
 	 * Case 4: Whispering target users
 	 * Case 5: Existing user wishes to log in
 	 * Case 6: New user wishes to register
-	 * Case 7: Request for list of users 
+	 * Case 7: Request for list of users ** DON'T NEED THIS ACTSHUALLY **
 	 */
 
 	public void run(){
@@ -68,9 +70,6 @@ public class ChatServerThread implements Runnable {
 					break;
 				case 6:
 					createUser(message);
-					break;
-				case 7:
-					sendUsers();
 					break;
 				}
 			} catch (SocketException e) {
@@ -168,7 +167,6 @@ public class ChatServerThread implements Runnable {
 		chatServer.joinChatroom(crn, oos, this.username);
 		System.out.println("User "+username+" joined room: "+ crn);
 		this.crn = crn;
-		sendUsers();
 	}
 
 	/**
@@ -242,14 +240,7 @@ public class ChatServerThread implements Runnable {
 	 */
 
 	public void sendUsers() throws IOException{
-		// dirty tricks: payload in MsgObj is of type Object; we can add the entire list at once. 
-		// do it and since we can tell the reciever what to do, we can be sure of the casting clientside
-		MsgObj sendMessage = new MsgObj();
-		sendMessage.addToPayload(this.chatServer.chatRooms.get(this.crn).getClientList());
-		byte type = 1; // argh really?
-		sendMessage.setType(type);
-		oos.writeObject(sendMessage);	
-		System.out.println("Sent user list to: "+this.username+" at: "+this.socket);
+		chatServer.chatRooms.get(this.crn).updateUsers();
 	}
 
 	/**

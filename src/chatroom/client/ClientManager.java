@@ -111,21 +111,17 @@ public class ClientManager {
 	}
 	
 	public void updateRoomList(String[] rooms){
-		DefaultListModel model = new DefaultListModel();
+		roomSelectionWindow.getRoomListModel().clear();
 		for (String room : rooms){
-			model.addElement(room);			
+			roomSelectionWindow.getRoomListModel().addElement(room);			
 		}
-		roomSelectionWindow.getRoomList().setModel(model);
-		roomSelectionWindow.getRoomList().validate();
 	}
 	
 	public void updateUserList(String[] users){
-		DefaultListModel model = new DefaultListModel();
+		chatroomWindow.getUserListModel().clear();
 		for (String user : users){
-			model.addElement(user);
+			chatroomWindow.getUserListModel().addElement(user);
 		}
-		chatroomWindow.getUserList().setModel(model);
-		chatroomWindow.getUserList().validate();
 	}
 	
 	public void updateChatHistory(String message){
@@ -152,8 +148,8 @@ public class ClientManager {
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-		int port = 4444;
-		String hostname = "localhost";
+		int port = Integer.parseInt(args[0]);
+		String hostname = args[1];
 		ClientManager manager = new ClientManager(hostname, port);
 		manager.loginWindow();
 	}

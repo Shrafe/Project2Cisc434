@@ -1,5 +1,6 @@
 package chatroom.client;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.GroupLayout;
 import javax.swing.JOptionPane;
@@ -27,6 +28,7 @@ public class ChatroomWindow {
 	private JTextArea chatHistory;
 	private JTextArea chatBox;
 	private JList userList;
+	private DefaultListModel userListModel;
 
 	/**
 	 * Create the application.
@@ -44,10 +46,9 @@ public class ChatroomWindow {
 		return this.chatHistory;
 	}
 	
-	public JList getUserList(){
-		return this.userList;
+	public DefaultListModel getUserListModel(){
+		return this.userListModel;				
 	}
-	
 	
 	/**
 	 * Initialize the contents of the frame.
@@ -128,7 +129,8 @@ public class ChatroomWindow {
 		chatHistory.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		chatHistoryScroll.setViewportView(chatHistory);
 		
-		this.userList = new JList();
+		this.userListModel = new DefaultListModel();		
+		this.userList = new JList(userListModel);
 		userListScroll.setViewportView(userList);
 		frmChattingIn.getContentPane().setLayout(groupLayout);
 	}
@@ -167,7 +169,7 @@ public class ChatroomWindow {
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
-
+			// disable the button for sending if the text is empty..
 			chatBox.setText("");
 		}
 	}
