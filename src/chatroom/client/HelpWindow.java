@@ -35,7 +35,6 @@ public class HelpWindow {
 		frame = new JFrame();
 		frame.setResizable(false);
 		frame.setBounds(100, 100, 463, 617);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JScrollPane scrollPane = new JScrollPane();
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
