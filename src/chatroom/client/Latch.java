@@ -1,7 +1,5 @@
 package chatroom.client;
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
-
 public class Latch {
 	private final Object latch = new Object();
 
