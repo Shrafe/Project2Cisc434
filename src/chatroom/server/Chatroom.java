@@ -31,7 +31,7 @@ public class Chatroom extends Thread implements Serializable{
 	
 	public void removeClient(String clientName) {
 		clients.remove(clientName);
-		clientNames = loadClientNames(clients.skeySet());
+		clientNames = loadClientNames(clients.keySet());
 	}
 
 	/** 
@@ -43,7 +43,7 @@ public class Chatroom extends Thread implements Serializable{
 	public void sendToClients(String message, List<String> whisperClients) throws IOException{
 		MsgObj sendMessage = new MsgObj();
 		sendMessage.addToPayload(message);
-		byte type = 3;
+		byte type = 4;
 		sendMessage.setType(type);
 		Set<String> keys = clients.keySet();
 		if (whisperClients != null){

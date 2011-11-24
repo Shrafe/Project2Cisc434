@@ -16,11 +16,9 @@ import chatroom.server.MsgObj;
  */
 public class ClientComThread extends Thread {
 	ClientApp client; // we need to be able to call functions here
-	Object lock;
 
-	public ClientComThread(ClientApp client, Object lock){
+	public ClientComThread(ClientApp client){
 		this.client = client;
-		this.lock = lock;
 	}
 
 	/**
@@ -57,8 +55,13 @@ public class ClientComThread extends Thread {
 				reportLoginResult(message);
 				break;
 			case 3:
+				reportUserCreationResult(message);
+				break;
+			case 4:
 				postMessage(message);
 				break;
+			default: 
+				throw new Exception(); // barf. this means that getType is giving us invalid values
 			}
 			} catch (Exception e){
 				e.printStackTrace();
@@ -74,7 +77,9 @@ public class ClientComThread extends Thread {
 	 */
 	
 	private void updateChatroomList(MsgObj message){
-		client.updateChatroomList(message.getPayload());
+		// dirty tricks once again
+		client.updateRoomList((String[])message.getPayload().get(0));
+		client.getLatch().signal(); // signal the client to continue
 	}
 	
 	/**
@@ -82,17 +87,25 @@ public class ClientComThread extends Thread {
 	 * @param message
 	 */
 	private void updateUserList(MsgObj message){
-		client.updateUserList(message.getPayload());
+		// we know that the server sends us
+		// using the dirty tricks; first element is our list of users in String[] form;
+		client.updateUserList((String[])message.getPayload().get(0));
+		client.getLatch().signal(); // signal the client to continue
 	}
 	
-	/** 
-	 * Need to signal the client that its login either succeeded or failed. 
-	 * Maybe use a latch or something like that 
-	 * @param message
-	 */
+	
+	private void reportUserCreationResult(MsgObj message){
+		client.setCreationSuccess((String)message.getPayload().get(0));
+		client.getLatch().signal(); // signal the client to continue
+	}
 	
 	private void reportLoginResult(MsgObj message){
-		client.setLoginResult()
+		client.setLoginSuccess((String)message.getPayload().get(0));
+		client.getLatch().signal();
+	}
+	
+	private void postMessage(MsgObj message){
+		client.updateChatHistory((String)message.getPayload().get(0));
 	}
 	
 }

@@ -1,6 +1,5 @@
-package server;
+package chatroom.server;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -37,7 +36,7 @@ public class ChatServerThread implements Runnable {
 	 * Case 1: User Exiting Chat Room
 	 * Case 2: User Entering Chat Room
 	 * Case 3: Posting to a Chat room
-	 * Case 4: Whispering one target user
+	 * Case 4: Whispering target users
 	 * Case 5: Existing user wishes to log in
 	 * Case 6: New user wishes to register
 	 * Case 7: Request for list of users 
@@ -54,7 +53,7 @@ public class ChatServerThread implements Runnable {
 					sendChatrooms();
 					break;
 				case 1:
-					leaveRoom(message);
+					leaveRoom();
 					break;
 				case 2:
 					joinRoom(message);
@@ -75,7 +74,14 @@ public class ChatServerThread implements Runnable {
 					sendUsers();
 					break;
 				}
-			} catch (IOException e) {
+			} catch (SocketException e) {
+				System.out.println("Client: "+socket+" disconnected.");
+				try{
+					this.socket.close();
+				}catch (IOException ioe){
+					ioe.printStackTrace();
+				}
+			}catch (IOException e) {
 				e.printStackTrace();
 			} catch (ClassNotFoundException e){
 				e.printStackTrace();
@@ -106,21 +112,19 @@ public class ChatServerThread implements Runnable {
 		ArrayList<Object> payload = message.getPayload();
 		String checkUsername = (String)payload.get(0); // we know that the username is first
 		String checkPassword = (String)payload.get(1); // and the password is second
-		if (chatServer.users.containsKey(checkUsername)){
-			if (chatServer.users.get(checkUsername).equals(checkPassword)){
-				this.username = checkUsername;
-				this.password = checkPassword;
-				System.out.println("User: "+this.username+" validated successfully.");
-				sendChatrooms();
-			}
-			else {
-				System.err.println("User: "+checkUsername+" validation failed from: "+socket);
-				loginFailed();
-			}
-		}
-		else {
-			System.err.println("User: "+checkUsername+" gave wrong credentials from: "+socket);
-			loginFailed();
+		String result = chatServer.validateUser(checkUsername, checkPassword);
+		MsgObj sendMessage = new MsgObj();
+		byte type = 2;
+		sendMessage.setType(type);
+		sendMessage.addToPayload(result);
+		oos.writeObject(sendMessage);
+		if (result.equals("t")){
+			this.username = checkUsername;
+			this.password = checkPassword;
+			System.out.println("User: "+this.username+" validated successfully.");
+			sendChatrooms();
+		} else {
+			System.err.println("Wrong credentials from: "+socket+" for username: "+checkUsername);			
 		}
 	}
 
@@ -129,10 +133,8 @@ public class ChatServerThread implements Runnable {
 	 * no message is sent when login is a success; we simply recieve the list of chatrooms
 	 * and go on our way 
 	 */
-	public void loginFailed(){
-		MsgObj sendMessage = new MsgObj();
-		byte type = 2;
-		oos.writeObject(sendMessage);
+	public void loginFailed() throws IOException{
+
 	}
 
 	/**
@@ -155,10 +157,11 @@ public class ChatServerThread implements Runnable {
 		String newUsername = (String)payload.get(0); // first value in the payload is the username;
 		String newPassword = (String)payload.get(1); // second is the password
 		String result = chatServer.addUser(newUsername, newPassword);
-		System.out.println("New user created: "+ newUsername + " | Result of operation was: "+result);
+		System.out.println("New user request: "+ newUsername + " | Result of operation was: "+result);
 		MsgObj sendMessage = new MsgObj();
 		sendMessage.addToPayload(result);
 		byte type = 3;
+		sendMessage.setType(type);
 		oos.writeObject(sendMessage);		
 	}
 
@@ -181,7 +184,7 @@ public class ChatServerThread implements Runnable {
 		this.crn = crn;
 		sendUsers();
 	}
-	
+
 	/**
 	 * method that nulls out the crn for this thread
 	 */
@@ -189,8 +192,8 @@ public class ChatServerThread implements Runnable {
 		chatServer.chatRooms.get(this.crn).removeClient(this.username); // remove us from the chatroom so we don't get anymore messages from it
 		this.crn = ""; // empty string for crn
 	}
-	
-	
+
+
 	/**
 	 * Method that sends the data from the client as a message to all
 	 * clients connected to the chatroom that this client is in
@@ -258,7 +261,7 @@ public class ChatServerThread implements Runnable {
 	 * @throws ClassNotFoundException
 	 */
 
-	public void sendUsers(){
+	public void sendUsers() throws IOException{
 		MsgObj sendMessage = new MsgObj();
 		// dirty tricks: payload in MsgObj is of type Object; we can add the entire list at once. 
 		// do it and since we can tell the reciever what to do, we can be sure of the casting clientside

@@ -50,30 +50,33 @@ public class ClientApp extends JApplet{
 	private JScrollPane roomScroll;
 
 	private ArrayList<Component> components;
-	
+
 	private ObjectInputStream ois;
 	private ObjectOutputStream oos;
 	private Socket socket;
-	
+
 	private ClientComThread clientComHandler;
-	
-	private final Object lock = new Object(); // use this to signal that the response has been received 
-											  // in the communication handler
+
+	private Latch latch = new Latch(); 
+	// in the communication handler
+	private boolean loginSuccess;
+	private boolean creationSuccess;
 
 	public ClientApp (JFrame frame, String hostname, int port) {
 		try{
 			this.socket = new Socket(hostname, port);
+			this.loginSuccess = false; // initial value
 			this.oos = new ObjectOutputStream(socket.getOutputStream());
 			oos.flush();
 			this.ois = new ObjectInputStream(socket.getInputStream());
 			this.frame = frame;
-			clientComHandler = new ClientComThread(this, lock);
+			clientComHandler = new ClientComThread(this);
 			clientComHandler.start();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
 	}
-	
+
 	public ObjectInputStream getOis(){
 		return this.ois;
 	}
@@ -92,35 +95,35 @@ public class ClientApp extends JApplet{
 		// Create the Username text field
 		username = new JTextField();
 		username.setBounds(xspacing, height/4 , width-8*xspacing, txtheight);
-		
+
 		// Create the Username label
 		JLabel userLabel = new JLabel();
 		userLabel.setText("Username");
 		userLabel.setBounds(username.getX() + username.getWidth() + xspacing,
 				username.getY(), 3*xspacing, txtheight);
-		
+
 		// Create the Password text field
 		password = new JPasswordField();
 		password.setBounds(xspacing, height/2, width-8*xspacing, txtheight);
-		
+
 		// Create the Password label
 		JLabel passLabel = new JLabel();
 		passLabel.setText("Password");
 		passLabel.setBounds(password.getX() + password.getWidth() + xspacing,
 				password.getY(), 3*xspacing, txtheight);
-		
+
 		// Create the Login button
 		JButton login = new JButton();
 		login.setText("Login");
 		login.setBounds(xspacing, 3*height/4, width/3, btnheight);
 		login.addActionListener(new LoginListener());
-		
+
 		// Create the New User button
 		JButton newUser = new JButton();
 		newUser.setText("New User?");
 		newUser.setBounds(login.getWidth() + 3*xspacing, 3*height/4, width/3, btnheight);
 		newUser.addActionListener(new NewUserListener());
-		
+
 		// Add every new component to a list so they can be easily removed
 		// later with a single method
 		components.add(username);
@@ -129,7 +132,7 @@ public class ClientApp extends JApplet{
 		components.add(passLabel);
 		components.add(login);
 		components.add(newUser);
-		
+
 		// Add every new component to the frame
 		for (int i = 0; i < components.size(); i++) {
 			frame.add(components.get(i));
@@ -141,7 +144,7 @@ public class ClientApp extends JApplet{
 	 * be able to send and receive messages
 	 */
 	private void chatRoomWindow() {
-		
+
 		width = 500;
 		height = 700;
 		int[] rowHeights = {50, 550, 100};
@@ -173,7 +176,7 @@ public class ClientApp extends JApplet{
 		//userListModel.addElement("User2");
 		//userListModel.addElement("User3");
 		//userListModel.addElement("User4");
-		
+
 		// Not too sure how you were getting lists of users because you had deleted
 		// this but not added anything.
 		////////////////////////////////////////////////////////////
@@ -238,7 +241,7 @@ public class ClientApp extends JApplet{
 		}
 
 	}
-	
+
 	/**
 	 * Creates the Chat Room Selection window where users will be able to
 	 * Join Rooms, Refresh the list of rooms, and create new Rooms (maybe)
@@ -264,30 +267,30 @@ public class ClientApp extends JApplet{
 
 		String[] rooms = {};
 		MsgObj message = new MsgObj();
-		
+
 		try {
 			// Ask the server for a list of rooms
 			oos.writeObject(message);
-			
+
 			// Wait for the list to come back
 			rooms = (String[])ois.readObject();
-			
+
 			for (int i = 0; i < rooms.length; i++) {
 				roomListModel.addElement(rooms[i]);
 			}
-		
+
 		} catch (ClassNotFoundException e1) {
 			e1.printStackTrace();
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+
 		roomListModel = new DefaultListModel();
 
 		for (int i = 0; i < rooms.length; i++) {
 			roomListModel.addElement(rooms[i]);
 		}
-		
+
 		roomList = new JList(roomListModel);
 		roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		roomList.addListSelectionListener(new RoomSelectionListener());
@@ -324,7 +327,7 @@ public class ClientApp extends JApplet{
 			frame.add(components.get(i));
 		}
 	}
-	
+
 	public List<String> makeList(Object[] in){
 		List<String> retVal = new ArrayList<String>();
 		for (Object a : in){
@@ -332,7 +335,7 @@ public class ClientApp extends JApplet{
 		}
 		return retVal;
 	}
-	
+
 
 	public String charArrToString(char [] arr){
 		String result = "";
@@ -341,13 +344,49 @@ public class ClientApp extends JApplet{
 		}
 		return result;
 	}
-	
+
 	public void await() throws InterruptedException{
-		synchronized(lock){
-			lock.wait();
-		}
+		latch.await();
+	}
+	
+	public Latch getLatch(){
+		return this.latch;
+	}
+	
+	public void setLoginSuccess(String result){
+		if (result.equals("t"))
+			this.loginSuccess = true;
+		else
+			this.loginSuccess = false;
 	}
 
+	public boolean getLoginSuccess(){
+		return this.loginSuccess;	
+	}
+	
+	public void setCreationSuccess(String result){
+		if (result.equals("t"))
+			this.creationSuccess = true;
+		else
+			this.creationSuccess = false;
+	}
+	
+	public boolean getCreationSuccess(){
+		return this.creationSuccess;
+	}
+	
+	public void updateRoomList(String[] rooms){
+		roomList = new JList(rooms);
+	}
+	
+	public void updateUserList(String[] users){
+		userList = new JList(users);
+	}
+	
+	public void updateChatHistory(String message){
+		chatHistory.setText(chatHistory.getText() + message);
+	}
+	
 	/**
 	 * Clear every current component from the frame without destroying
 	 * it outright
@@ -359,37 +398,37 @@ public class ClientApp extends JApplet{
 
 		components.clear();
 	}
-	
+
 	/**
 	 * Listener for the Refresh button on the Chat Room
 	 * Selection window
 	 */
 	class RefreshListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			
+
 			MsgObj message = new MsgObj();
-			
+
 			try {
 				oos.writeObject(message);
-				
+
 				String[] rooms = (String[])ois.readObject();
-				
+
 				roomScroll.remove(roomList);
 				roomListModel = new DefaultListModel();
-				
+
 				for (int i = 0; i < rooms.length; i++) {
 					roomListModel.addElement(rooms[i]);
 				}
-				
+
 				roomList = new JList(roomListModel);
 				roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 				roomList.addListSelectionListener(new RoomSelectionListener());
-				
-				
+
+
 				roomScroll.add(roomList);
 				roomScroll.setMinimumSize(new Dimension(300,200));
 				roomScroll.setMaximumSize(new Dimension(300,200));
-				
+
 			} catch (ClassNotFoundException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -399,14 +438,14 @@ public class ClientApp extends JApplet{
 			}
 		}
 	}
-	
+
 	/**
 	 * Listener for the **Join** button on the Chat Room
 	 * Selection window
 	 */
 	class JoinListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			
+
 			if (roomList.getSelectedIndex() == -1){
 				chatRoom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
 			}
@@ -415,22 +454,25 @@ public class ClientApp extends JApplet{
 				// Set the local variable for chat room name
 				chatRoom = (String)roomList.getSelectedValue();
 			}
-			
-			MsgObj message = new MsgObj(chatRoom, user, MsgObj.entering);
-			
+
+			MsgObj message = new MsgObj();
+			message.addToPayload(chatRoom);
+			byte type = 2;
+			message.setType(type);
+
 			// Send the message
 			try {
 				oos.writeObject(message);
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
-			
+
 			// Clear the Chat Room Selection window
 			clearComponents();
-			
+
 			// Launch the Chat Room window
 			chatRoomWindow();
-				
+
 		}
 	}
 
@@ -441,31 +483,19 @@ public class ClientApp extends JApplet{
 	class SendListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 
-			int size = userList.getSelectedIndices().length;
-			MsgObj message;
+			MsgObj message = new MsgObj();
+			message.addToPayload(user+": "+chatBox.getText()); 
 
-			// One whisper or "All" users selected
-			if(size == 1) {
-
-				if (userList.getSelectedIndex() != 0) {
-					// Whisper the target
-					message = new MsgObj(
-							user + ": " + chatBox.getText(),
-							chatRoom, user,
-							(String)userList.getSelectedValue()
-							);
-				}
-				else {
-					// Post to the room
-					message = new MsgObj(user + ": " + chatBox.getText(),
-							chatRoom, user);
-				}
-			}
-			else {
-				// Whisper multiple targets
-				message = new MsgObj(
-						user + ": " + chatBox.getText(),
-						chatRoom, user,	makeList(userList.getSelectedValues()));
+			if (userList.getSelectedIndex() != -1) { // this is a whisper
+				// add list of targets. 1-inf selected
+				List<String> whisperList = makeList(userList.getSelectedValues());
+				message.addToPayload(whisperList);
+				byte type = 4;
+				message.setType(type);
+			} else {
+				// Post to the room
+				byte type = 3;
+				message.setType(type);
 			}
 			
 			// Send the message
@@ -474,11 +504,6 @@ public class ClientApp extends JApplet{
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
-
-			/////////////////////////////////////////////
-			// Testing that the message shows up in the box
-			//chatHistory.setText(chatHistory.getText() + "\n" + user + ": " + chatBox.getText());
-			/////////////////////////////////////////////
 
 			chatBox.setText("");
 		}
@@ -490,16 +515,19 @@ public class ClientApp extends JApplet{
 	class LoginListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			try{
-				oos.writeObject("0"); // we're trying to log in. tell server
-				oos.writeObject(username.getText());
-				oos.writeObject(charArrToString(password.getPassword()));
+				MsgObj message = new MsgObj();
+				byte type = 5; // log in type
+				message.setType(type);
+				message.addToPayload(username.getText());
+				message.addToPayload(charArrToString(password.getPassword()));
 
-				String[] rooms = (String[])ois.readObject();
-				if(rooms!=null){
+				// wait on the result from ComThread
+				latch.await();
+				
+				if(getLoginSuccess()){
 
 					user = username.getText();
 
-					roomList = new JList(rooms);
 					clearComponents();
 					chatSelectionWindow();
 				}
@@ -518,20 +546,20 @@ public class ClientApp extends JApplet{
 	class NewUserListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			try{
-				oos.writeObject("1"); // we're creating a user, tell it that!
-				oos.writeObject(username.getText()); 
-				oos.writeObject(charArrToString(password.getPassword()));
+				MsgObj message = new MsgObj();
+				byte type = 6;
+				message.setType(type);
+				
+				message.addToPayload(username.getText());				
+				message.addToPayload(charArrToString(password.getPassword())); 
 
-				String success = (String)ois.readObject();
-
-				if (success != null && success.equals("success")){
+				// wait for the result to be put into our object
+				latch.await();
+				if (getCreationSuccess()){
 					JOptionPane.showMessageDialog(frame, "Your new user was successfully registered.");
 				}
-				else if (success != null && success.equals("dup")){
-					JOptionPane.showMessageDialog(frame, "The username already existed.");
-				}
 				else
-					JOptionPane.showMessageDialog(frame, "Cataclysmic error of some kind.");
+					JOptionPane.showMessageDialog(frame, "Your user could not be created. Likely it already exists.");
 			} catch (Exception ex){
 				ex.printStackTrace();
 			}
@@ -544,13 +572,14 @@ public class ClientApp extends JApplet{
 	 */
 	class ExitListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			
-			MsgObj message = new MsgObj(chatRoom, user, MsgObj.exiting);
-			
+
+			MsgObj message = new MsgObj();
+			byte type = 1;
+			message.setType(type);
+
 			// Send message
 			try {
-				// stop the thread managing the chat
-				clientComHandler.interrupt();
+				// this is all we need to do
 				oos.writeObject(message);
 			} catch (SocketException ex){
 				JOptionPane.showMessageDialog(frame, "The server has crashed / is not responsive.");
@@ -558,7 +587,7 @@ public class ClientApp extends JApplet{
 			} catch (IOException ioe) {
 				ioe.printStackTrace();
 			}
-			
+
 			clearComponents();
 			chatSelectionWindow();
 		}

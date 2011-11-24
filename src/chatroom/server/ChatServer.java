@@ -75,16 +75,23 @@ public class ChatServer {
 	public void removeChatroom(String crn){
 		chatRooms.remove(crn);
 	}
+	
+	public String validateUser(String username, String password){
+		String returnVal = "f";
+		if (this.users.containsKey(username)){
+			if(this.users.get(username).equals(password)){
+				returnVal = "t";
+			}
+		}
+		return returnVal;
+	}
 
 	public String addUser(String username, String password){
-		String returnVal = null;
+		String returnVal = "f";
 	
-		if (this.users.containsKey(username)){
-			returnVal = "dup";
-		}
-		else { 
-			returnVal = "success";
+		if (!this.users.containsKey(username)){
 			this.users.put(username, password);
+			returnVal = "t";
 		}
 		writeUsersFile();
 		return returnVal;
@@ -115,7 +122,7 @@ public class ChatServer {
 		HashMap<String, String> returnVal = new HashMap<String,String>();
 		String input;
 		try{
-			BufferedReader userList = new BufferedReader(new FileReader("C:\\Users\\Bryce\\workspace\\CISC434Phase2\\users.txt"));
+			BufferedReader userList = new BufferedReader(new FileReader("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
 			while((input = userList.readLine())!=null){
 				String[] values = input.split(" ");
 				returnVal.put(values[0], values[1]);
