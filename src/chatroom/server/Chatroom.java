@@ -61,16 +61,23 @@ public class Chatroom extends Thread implements Serializable{
 	 * @param message
 	 * @throws IOException
 	 */
-	public void sendToClients(String message, List<String> whisperClients) throws IOException{
+	public void sendToClients(String message, String sender, List<String> whisperClients) throws IOException{
 		MsgObj sendMessage = new MsgObj();
-		sendMessage.addToPayload(message);
 		byte type = 4;
 		sendMessage.setType(type);
 		if (whisperClients != null){
 			// we have clients to whisper, use those values instead
+			// need to modify message in this case
+			sendMessage.addToPayload("( Whisper from "+sender+" ): "+message);
+			String senderMessage = "( Whisper to ";
 			for (String client : whisperClients){
 				clients.get(client).writeObject(sendMessage);
+				senderMessage+=client+", ";
 			}
+			// now we need to send another message with a different payload
+			sendMessage.getPayload().clear();
+			sendMessage.addToPayload(senderMessage+"): "+message);
+			clients.get(sender).writeObject(sendMessage); // send the whisper
 		}
 		else {
 			Set<String> keys = clients.keySet();
