@@ -19,6 +19,7 @@ public class ClientManager {
 	private RoomSelectionWindow roomSelectionWindow;
 	private ChatroomWindow chatroomWindow;
 	private ClientComThread clientComHandler;
+	private HelpWindow helpWindow;
 	private Latch latch = new Latch(); 
 	// in the communication handler
 	private boolean loginSuccess;
@@ -41,6 +42,7 @@ public class ClientManager {
 			loginWindow = new LoginWindow(this);
 			roomSelectionWindow = new RoomSelectionWindow(this);
 			chatroomWindow = new ChatroomWindow(this);
+			helpWindow = new HelpWindow();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -66,6 +68,10 @@ public class ClientManager {
 		this.roomSelectionWindow.getFrame().setVisible(true);
 	}
 
+	public void helpWindow(){
+		this.helpWindow.getFrame().setVisible(true);
+	}
+	
 	public List<String> makeList(Object[] in){
 		List<String> retVal = new ArrayList<String>();
 		for (Object a : in){
@@ -171,5 +177,6 @@ public class ClientManager {
 		String hostname = args[1];
 		ClientManager manager = new ClientManager(hostname, port);
 		manager.loginWindow();
+		manager.helpWindow();
 	}
 }

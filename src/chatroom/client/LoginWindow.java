@@ -18,6 +18,7 @@ import javax.swing.JPasswordField;
 import chatroom.server.MsgObj;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.SwingConstants;
 
 public class LoginWindow {
 
@@ -77,7 +78,8 @@ public class LoginWindow {
 		btnNewUser.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		btnNewUser.addActionListener(new NewUserListener());
 		
-		JLabel lblWelcomeToChat = new JLabel("Welcome to BaT Chat");
+		JLabel lblWelcomeToChat = new JLabel("Login to BaT Chat");
+		lblWelcomeToChat.setHorizontalAlignment(SwingConstants.CENTER);
 		lblWelcomeToChat.setFont(new Font("Calibri", Font.BOLD, 16));
 		
 		passwordField = new JPasswordField();
