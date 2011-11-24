@@ -84,6 +84,10 @@ public class ClientApp extends JApplet{
 	public ObjectInputStream getOis(){
 		return this.ois;
 	}
+	
+	public ObjectOutputStream getOos(){
+		return this.oos;
+	}
 
 	/**
 	 * Initial method that creates the Login screen.
@@ -170,7 +174,7 @@ public class ClientApp extends JApplet{
 
 		exit = new JButton();
 		exit.setText("Leave Room");
-		exit.addActionListener(new ExitListener());
+		exit.addActionListener(new LeaveRoomListener());
 
 		////////////////////////////////////////////////////////////
 		// list will eventually accept data that was returned by the server
@@ -248,7 +252,9 @@ public class ClientApp extends JApplet{
 	 * Creates the Chat Room Selection window where users will be able to
 	 * Join Rooms, Refresh the list of rooms, and create new Rooms (maybe)
 	 */
-	private void chatSelectionWindow() {
+	
+	// try to replace this with "new RoomSelectionWindow"
+	public void roomSelectionWindow() {
 
 		// I have no idea why but unless the frame is resized the new components don't appear
 		width = 300;
@@ -268,8 +274,7 @@ public class ClientApp extends JApplet{
 		frame.setLayout(gbl);
 
 		roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		roomList.addListSelectionListener(new RoomSelectionListener());
-
+		
 		roomScroll = new JScrollPane(roomList);
 		roomScroll.setMinimumSize(new Dimension(300,200));
 		roomScroll.setMaximumSize(new Dimension(300,200));
@@ -370,6 +375,10 @@ public class ClientApp extends JApplet{
 		chatHistory.setText(chatHistory.getText() + message +"\n");
 	}
 	
+	public void setUser(String username){
+		this.user = username;
+	}
+	
 	/**
 	 * Clear every current component from the frame without destroying
 	 * it outright
@@ -403,8 +412,6 @@ public class ClientApp extends JApplet{
 */
 				roomList = new JList(roomListModel);
 				roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-				roomList.addListSelectionListener(new RoomSelectionListener());
-
 
 				roomScroll.add(roomList);
 				roomScroll.setMinimumSize(new Dimension(300,200));
@@ -510,7 +517,7 @@ public class ClientApp extends JApplet{
 					user = username.getText();
 
 					clearComponents();
-					chatSelectionWindow();
+					roomSelectionWindow();
 				}
 				else
 					JOptionPane.showMessageDialog(frame, "Incorrect username / password. Try again .");
@@ -551,7 +558,7 @@ public class ClientApp extends JApplet{
 	 * Listener for the **Leave Room** button on the
 	 * Chat Room window
 	 */
-	class ExitListener implements ActionListener {
+	class LeaveRoomListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 
 			MsgObj message = new MsgObj();
@@ -570,15 +577,11 @@ public class ClientApp extends JApplet{
 			}
 
 			clearComponents();
-			chatSelectionWindow();
+			roomSelectionWindow();
 		}
 	}
 
-	class RoomSelectionListener implements ListSelectionListener {
-		public void valueChanged(ListSelectionEvent e) {
-			// Probably a useless listening class
-		}
-	}
+
 	/**
 	 * Listener class for when the user clicks on a any user in the
 	 * list of users. Includes shift and ctrl selection, but does not
