@@ -146,6 +146,7 @@ public class ChatroomWindow {
 			if (userList.getSelectedIndex() != -1) { // this is a whisper
 				// add list of targets. 1-inf selected
 				List<String> whisperList = client.makeList(userList.getSelectedValues());
+				whisperList.add(client.getUser()); // see our own whispers
 				message.addToPayload("(Whisper from "+client.getUser()+"): "+chatBox.getText()); 
 				message.addToPayload(whisperList);
 				byte type = 4;
