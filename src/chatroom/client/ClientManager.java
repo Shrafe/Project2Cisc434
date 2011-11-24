@@ -131,7 +131,7 @@ public class ClientManager {
 	}
 	
 	public void setUser(String username){
-		this.user = username + " ("+this.socket.getInetAddress().toString()+")";
+		this.user = username;
 		this.roomSelectionWindow.getTitle().setText("Logged in as '"+user+"'");
 	}
 	

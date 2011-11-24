@@ -151,7 +151,7 @@ public class ChatServer {
 		Set<String> keySet = this.userCredentials.keySet();
 		PrintWriter out = null;
 		try{
-			out = new PrintWriter(new FileWriter("C:\\Users\\Bryce\\workspace\\CISC434Phase2\\users.txt"));
+			out = new PrintWriter(new FileWriter("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
 			for (String key : keySet){
 				out.println(key+" "+this.userCredentials.get(key));
 			}

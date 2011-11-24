@@ -172,6 +172,7 @@ public class LoginWindow {
 				message.addToPayload(client.charArrToString(passwordField.getPassword())); 
 
 				// wait for the result to be put into our object
+				client.getOos().writeObject(message);
 				client.getLatch().await();
 				if (client.getCreationSuccess()){
 					JOptionPane.showMessageDialog(frmBatChat, "Your new user was successfully registered.");
