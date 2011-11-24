@@ -258,8 +258,8 @@ public class ChatServerThread implements Runnable {
 			if (crn != null){ // leave the room if we're in one.
 				leaveRoom();
 			}
-			ois.close(); // close our streams
 			oos.close();
+			ois.close(); // close our streams
 			socket.close(); // close the streams
 			this.connected = false; // we're done
 		} catch(IOException e){

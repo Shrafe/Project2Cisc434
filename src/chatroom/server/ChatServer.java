@@ -59,7 +59,7 @@ public class ChatServer {
 			while(true){
 				Socket socket = serverSocket.accept();
 				System.out.println("Client connection from "+socket);
-				new ChatServerThread(socket, this).run();		
+				new Thread(new ChatServerThread(socket, this)).start();		
 			}
 		}
 		catch (IOException e){
