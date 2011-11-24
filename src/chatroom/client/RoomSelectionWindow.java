@@ -49,10 +49,10 @@ public class RoomSelectionWindow {
 	 */
 	private void initialize() {
 		frmChatroom = new JFrame();
+		frmChatroom.setTitle("Room Select");
 //		frmChatroom.addWindowListener(new DisconnectListener(this.client.getOos()));
 		frmChatroom.setResizable(false);
-		frmChatroom.setTitle("Select");
-		frmChatroom.setBounds(100, 100, 208, 303);
+		frmChatroom.setBounds(100, 100, 250, 304);
 		frmChatroom.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		this.roomListModel = new DefaultListModel();
@@ -68,31 +68,31 @@ public class RoomSelectionWindow {
 		lblTitle = new JLabel();
 		GroupLayout groupLayout = new GroupLayout(frmChatroom.getContentPane());
 		groupLayout.setHorizontalGroup(
-				groupLayout.createParallelGroup(Alignment.LEADING)
+			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
-						.addContainerGap()
-						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-								.addComponent(roomList, GroupLayout.DEFAULT_SIZE, 182, Short.MAX_VALUE)
-								.addGroup(groupLayout.createSequentialGroup()
-										.addComponent(btnJoin, GroupLayout.PREFERRED_SIZE, 83, GroupLayout.PREFERRED_SIZE)
-										.addGap(18)
-										.addComponent(btnRefresh, GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE))
-										.addComponent(lblTitle, GroupLayout.PREFERRED_SIZE, 122, GroupLayout.PREFERRED_SIZE))
-										.addContainerGap())
-				);
+					.addContainerGap()
+					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+						.addComponent(roomList, GroupLayout.DEFAULT_SIZE, 224, Short.MAX_VALUE)
+						.addGroup(groupLayout.createSequentialGroup()
+							.addComponent(btnJoin, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(btnRefresh, GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE))
+						.addComponent(lblTitle, GroupLayout.DEFAULT_SIZE, 224, Short.MAX_VALUE))
+					.addContainerGap())
+		);
 		groupLayout.setVerticalGroup(
-				groupLayout.createParallelGroup(Alignment.LEADING)
+			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
-						.addGap(8)
-						.addComponent(lblTitle, GroupLayout.PREFERRED_SIZE, 14, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(roomList, GroupLayout.PREFERRED_SIZE, 206, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.UNRELATED)
-						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-								.addComponent(btnRefresh, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE)
-								.addComponent(btnJoin))
-								.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-				);
+					.addGap(8)
+					.addComponent(lblTitle, GroupLayout.PREFERRED_SIZE, 14, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(roomList, GroupLayout.PREFERRED_SIZE, 206, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+						.addComponent(btnJoin)
+						.addComponent(btnRefresh, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		);
 		frmChatroom.getContentPane().setLayout(groupLayout);
 	}
 

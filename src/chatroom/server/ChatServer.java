@@ -65,7 +65,7 @@ public class ChatServer {
 				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());	
 				clients.add(oos);
-				new Thread(new ChatServerThread(socket,oos, ois, this)).start();		
+				new Thread(new ChatServerThread(socket, oos, ois, this)).start();		
 			}
 		}
 		catch (IOException e){

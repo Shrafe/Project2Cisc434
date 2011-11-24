@@ -16,8 +16,6 @@ import java.awt.event.ActionListener;
 import javax.swing.JPasswordField;
 
 import chatroom.server.MsgObj;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import javax.swing.SwingConstants;
 
 public class LoginWindow {

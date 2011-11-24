@@ -13,6 +13,7 @@ public class ChatServerThread implements Runnable {
 	private ChatServer chatServer;
 	private ObjectOutputStream oos;
 	private ObjectInputStream ois;
+	private String ip;
 	private String username;
 	private String crn; // the chatroom we're currently in
 	private boolean connected;
@@ -21,6 +22,7 @@ public class ChatServerThread implements Runnable {
 		this.connected = true;
 		this.socket = socket;
 		this.chatServer = chatserver;
+		this.ip = socket.getInetAddress().toString();
 		try {
 			//this.oos = new ObjectOutputStream(this.socket.getOutputStream());
 			//ois = new ObjectInputStream(this.socket.getInputStream());
@@ -181,7 +183,7 @@ public class ChatServerThread implements Runnable {
 		sendMessage.addToPayload(result);
 		oos.writeObject(sendMessage);
 		if (result.equals("t")){
-			this.username = checkUsername;
+			this.username = checkUsername +" ("+this.ip+")";
 			System.out.println("User: "+this.username+" validated successfully.");
 			sendChatrooms();
 		} else {
