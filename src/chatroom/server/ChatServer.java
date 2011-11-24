@@ -25,7 +25,6 @@ public class ChatServer {
 	public ChatServer(int port) throws IOException{
 		this.port = port;
 		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>();
-		chatRooms.put("Test room", new Chatroom("Test room", this));
 		this.chatRooms = chatRooms;
 		
 		HashMap<String, String> users = loadUsers();
@@ -70,10 +69,24 @@ public class ChatServer {
 
 	public void createChatroom(String crn){
 		chatRooms.put(crn, new Chatroom(crn, this));
+		chatRoomNames = loadChatRoomNames();
 	}
 
 	public void removeChatroom(String crn){
 		chatRooms.remove(crn);
+		chatRoomNames = loadChatRoomNames();
+	}
+	
+
+	public void joinChatroom(String crn, ObjectOutputStream oos, String userName){
+		try{
+			if (!chatRooms.containsKey(crn))
+				createChatroom(crn);
+
+			chatRooms.get(crn).addClient(oos, userName);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 	
 	public String validateUser(String username, String password){
@@ -137,16 +150,5 @@ public class ChatServer {
 			System.exit(11);
 		}
 		return returnVal;
-	}
-
-	public void joinChatroom(String crn, ObjectOutputStream oos, String userName){
-		try{
-			if (!chatRooms.containsKey(crn))
-				createChatroom(crn);
-
-			chatRooms.get(crn).addClient(oos, userName);
-		} catch (Exception e){
-			e.printStackTrace();
-		}
 	}
 }

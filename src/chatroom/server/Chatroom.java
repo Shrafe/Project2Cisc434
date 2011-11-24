@@ -28,10 +28,31 @@ public class Chatroom extends Thread implements Serializable{
 		clients.put(clientName, oos);
 		clientNames = loadClientNames(clients.keySet());
 	}
-	
+
 	public void removeClient(String clientName) {
 		clients.remove(clientName);
 		clientNames = loadClientNames(clients.keySet());
+	}
+
+	/** 
+	 * Method to send a user list every time a new user joins the chatroom
+	 * everyone needs to know this great news!
+	 */
+
+	public void userJoined(){
+		MsgObj message = new MsgObj();
+		byte type = 1;
+		message.setType(type);
+		message.addToPayload(clientNames);
+		Set<String> keys = clients.keySet();
+		for (String client : keys){
+			try{
+				clients.get(client).writeObject(message);
+			}catch (IOException ioe){
+				ioe.printStackTrace();
+			}
+
+		}
 	}
 
 	/** 
@@ -45,7 +66,6 @@ public class Chatroom extends Thread implements Serializable{
 		sendMessage.addToPayload(message);
 		byte type = 4;
 		sendMessage.setType(type);
-		Set<String> keys = clients.keySet();
 		if (whisperClients != null){
 			// we have clients to whisper, use those values instead
 			for (String client : whisperClients){
@@ -53,12 +73,13 @@ public class Chatroom extends Thread implements Serializable{
 			}
 		}
 		else {
+			Set<String> keys = clients.keySet();
 			// this message isn't a whisper; send to all clients in the chatroom
 			for (String client : keys){
 				clients.get(client).writeObject(sendMessage);
 			}
 		}
-			 
+
 	}
 
 	public String[] getClientList() throws IOException{
@@ -86,6 +107,5 @@ public class Chatroom extends Thread implements Serializable{
 		}
 		return returnVal;
 	}
-
 }
 

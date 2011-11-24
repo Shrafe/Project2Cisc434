@@ -2,6 +2,8 @@ package chatroom.client;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.SocketException;
+
 import javax.swing.JTextArea;
 
 import chatroom.server.MsgObj;
@@ -61,10 +63,14 @@ public class ClientComThread extends Thread {
 				postMessage(message);
 				break;
 			default: 
-				throw new Exception(); // barf. this means that getType is giving us invalid values
+				throw new IOException(); // barf. this means that getType is giving us invalid values
 			}
-			} catch (Exception e){
-				e.printStackTrace();
+			}catch (SocketException e){
+				System.exit(0);
+			}catch (ClassNotFoundException cnfe){
+				cnfe.printStackTrace();
+			}catch (IOException ioe){
+				ioe.printStackTrace();
 			}
 		}
 	}

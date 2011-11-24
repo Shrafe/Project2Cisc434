@@ -14,7 +14,6 @@ public class ChatServerThread implements Runnable {
 	private ObjectOutputStream oos;
 	private ObjectInputStream ois;
 	private String username;
-	private String password;
 	private String crn; // the chatroom we're currently in
 	private boolean connected;
 
@@ -44,7 +43,7 @@ public class ChatServerThread implements Runnable {
 
 	public void run(){
 
-		while (true){
+		while (connected){
 			try {
 				MsgObj message = (MsgObj) ois.readObject();
 
@@ -76,11 +75,7 @@ public class ChatServerThread implements Runnable {
 				}
 			} catch (SocketException e) {
 				System.out.println("Client: "+socket+" disconnected.");
-				try{
-					this.socket.close();
-				}catch (IOException ioe){
-					ioe.printStackTrace();
-				}
+				clientDisconnect();
 			}catch (IOException e) {
 				e.printStackTrace();
 			} catch (ClassNotFoundException e){
@@ -120,21 +115,11 @@ public class ChatServerThread implements Runnable {
 		oos.writeObject(sendMessage);
 		if (result.equals("t")){
 			this.username = checkUsername;
-			this.password = checkPassword;
 			System.out.println("User: "+this.username+" validated successfully.");
 			sendChatrooms();
 		} else {
 			System.err.println("Wrong credentials from: "+socket+" for username: "+checkUsername);			
 		}
-	}
-
-	/**
-	 * Helper to send an empty MsgObj with type = 2, to indicate a failed login attempt.
-	 * no message is sent when login is a success; we simply recieve the list of chatrooms
-	 * and go on our way 
-	 */
-	public void loginFailed() throws IOException{
-
 	}
 
 	/**
@@ -188,11 +173,11 @@ public class ChatServerThread implements Runnable {
 	/**
 	 * method that nulls out the crn for this thread
 	 */
-	public void leaveRoom(){
+	public void leaveRoom() throws IOException, ClassNotFoundException{
 		chatServer.chatRooms.get(this.crn).removeClient(this.username); // remove us from the chatroom so we don't get anymore messages from it
-		this.crn = ""; // empty string for crn
+		this.crn = null; // null out CRN
+		sendChatrooms();
 	}
-
 
 	/**
 	 * Method that sends the data from the client as a message to all
@@ -247,16 +232,8 @@ public class ChatServerThread implements Runnable {
 	}
 
 	/**
-	 * Same as above, but sends the list of users, not chatrooms
-	 * will fail if crn is null, but we should never be requesting refreshes if crn is null
-	 * 
-	 * Input from socket: 
-	 * none
-	 * 
-	 * Output to socket:
-	 * String[] users in the chatroom we are in
-	 * 
-	 * 
+	 * Sends the list of users in this chatroom. is not callable unless there is actually a value in
+	 * crn, by design, so there are no checks for it.	   
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
@@ -270,5 +247,25 @@ public class ChatServerThread implements Runnable {
 		sendMessage.setType(type);
 		oos.writeObject(sendMessage);	
 		System.out.println("Sent user list to: "+this.username+" at: "+this.socket);
+	}
+
+	/**
+	 * Disconnects the client cleanly, so the server won't fail if we have a SocketException
+	 * 
+	 */
+	public void clientDisconnect() {
+		try{
+			if (crn != null){ // leave the room if we're in one.
+				leaveRoom();
+			}
+			ois.close(); // close our streams
+			oos.close();
+			socket.close(); // close the streams
+			this.connected = false; // we're done
+		} catch(IOException e){
+			e.printStackTrace();
+		} catch (ClassNotFoundException cnfe){
+			cnfe.printStackTrace();			
+		}
 	}
 }

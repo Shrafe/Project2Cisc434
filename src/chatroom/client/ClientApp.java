@@ -29,7 +29,7 @@ public class ClientApp extends JApplet{
 	private int xspacing = 20;
 	private int txtheight = 25;
 	private int btnheight = 35;
-	private String chatRoom = "Default";
+	private String chatRoom;
 	private String user;
 	private DefaultListModel userListModel;
 	private DefaultListModel roomListModel;
@@ -72,6 +72,10 @@ public class ClientApp extends JApplet{
 			this.frame = frame;
 			clientComHandler = new ClientComThread(this);
 			clientComHandler.start();
+			this.roomListModel = new DefaultListModel();
+			this.userListModel = new DefaultListModel();
+			this.roomList = new JList(roomListModel);
+			this.userList = new JList(userListModel);
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -170,7 +174,6 @@ public class ClientApp extends JApplet{
 
 		////////////////////////////////////////////////////////////
 		// list will eventually accept data that was returned by the server
-		userListModel = new DefaultListModel();
 		//userListModel.addElement("All");
 		//userListModel.addElement("User1");
 		//userListModel.addElement("User2");
@@ -181,7 +184,6 @@ public class ClientApp extends JApplet{
 		// this but not added anything.
 		////////////////////////////////////////////////////////////
 
-		userList = new JList(userListModel);
 		userList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		userList.addListSelectionListener(new UserSelectionListener());
 
@@ -265,33 +267,6 @@ public class ClientApp extends JApplet{
 		gbl.columnWidths = columnWidths;
 		frame.setLayout(gbl);
 
-		String[] rooms = {};
-		MsgObj message = new MsgObj();
-
-		try {
-			// Ask the server for a list of rooms
-			oos.writeObject(message);
-
-			// Wait for the list to come back
-			rooms = (String[])ois.readObject();
-
-			for (int i = 0; i < rooms.length; i++) {
-				roomListModel.addElement(rooms[i]);
-			}
-
-		} catch (ClassNotFoundException e1) {
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
-		roomListModel = new DefaultListModel();
-
-		for (int i = 0; i < rooms.length; i++) {
-			roomListModel.addElement(rooms[i]);
-		}
-
-		roomList = new JList(roomListModel);
 		roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		roomList.addListSelectionListener(new RoomSelectionListener());
 
@@ -376,15 +351,23 @@ public class ClientApp extends JApplet{
 	}
 	
 	public void updateRoomList(String[] rooms){
-		roomList = new JList(rooms);
+		DefaultListModel model = new DefaultListModel();
+		for (String room : rooms){
+			model.addElement(room);			
+		}
+		roomList.setModel(model);
 	}
 	
 	public void updateUserList(String[] users){
-		userList = new JList(users);
+		DefaultListModel model = new DefaultListModel();
+		for (String user : users){
+			model.addElement(user);
+		}
+		userList.setModel(model);
 	}
 	
 	public void updateChatHistory(String message){
-		chatHistory.setText(chatHistory.getText() + message);
+		chatHistory.setText(chatHistory.getText() + message +"\n");
 	}
 	
 	/**
@@ -411,15 +394,13 @@ public class ClientApp extends JApplet{
 			try {
 				oos.writeObject(message);
 
-				String[] rooms = (String[])ois.readObject();
-
 				roomScroll.remove(roomList);
 				roomListModel = new DefaultListModel();
 
-				for (int i = 0; i < rooms.length; i++) {
+	/*			for (int i = 0; i < rooms.length; i++) {
 					roomListModel.addElement(rooms[i]);
 				}
-
+*/
 				roomList = new JList(roomListModel);
 				roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 				roomList.addListSelectionListener(new RoomSelectionListener());
@@ -429,9 +410,6 @@ public class ClientApp extends JApplet{
 				roomScroll.setMinimumSize(new Dimension(300,200));
 				roomScroll.setMaximumSize(new Dimension(300,200));
 
-			} catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -445,18 +423,19 @@ public class ClientApp extends JApplet{
 	 */
 	class JoinListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-
+			String joinChatroom = null;
 			if (roomList.getSelectedIndex() == -1){
-				chatRoom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
+				while (joinChatroom == null){
+					joinChatroom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
+				}
 			}
 			// Check that the user has selected a room
 			else {
 				// Set the local variable for chat room name
-				chatRoom = (String)roomList.getSelectedValue();
+				joinChatroom = (String)roomList.getSelectedValue();
 			}
-
 			MsgObj message = new MsgObj();
-			message.addToPayload(chatRoom);
+			message.addToPayload(joinChatroom);
 			byte type = 2;
 			message.setType(type);
 
@@ -469,7 +448,7 @@ public class ClientApp extends JApplet{
 
 			// Clear the Chat Room Selection window
 			clearComponents();
-
+			chatRoom = joinChatroom;
 			// Launch the Chat Room window
 			chatRoomWindow();
 
@@ -484,17 +463,19 @@ public class ClientApp extends JApplet{
 		public void actionPerformed(ActionEvent e) {
 
 			MsgObj message = new MsgObj();
-			message.addToPayload(user+": "+chatBox.getText()); 
+			
 
 			if (userList.getSelectedIndex() != -1) { // this is a whisper
 				// add list of targets. 1-inf selected
 				List<String> whisperList = makeList(userList.getSelectedValues());
+				message.addToPayload("(Whisper from "+user+"): "+chatBox.getText()); 
 				message.addToPayload(whisperList);
 				byte type = 4;
 				message.setType(type);
 			} else {
 				// Post to the room
 				byte type = 3;
+				message.addToPayload(user+": "+chatBox.getText()); 
 				message.setType(type);
 			}
 			
@@ -520,7 +501,7 @@ public class ClientApp extends JApplet{
 				message.setType(type);
 				message.addToPayload(username.getText());
 				message.addToPayload(charArrToString(password.getPassword()));
-
+				oos.writeObject(message);
 				// wait on the result from ComThread
 				latch.await();
 				
