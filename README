@@ -1,26 +1,6 @@
-We may want to consider sending special values between the two before sending any actual meaningful data. 
-This would allow us to control server state better. as it stands i'm basically just hacking stuff on as i
-see fit. and i mean it'll work but i feel terrible for doing it
-lol
-
-my preliminary 5am ideas
-
-1: login data incoming
-2: chatroom name is next piece of data
-3: send me a new list of chatroom names
-
-
-without something like this i'm having a hell of a time making sure all of the streams are waiting for the right
-things and having the right things written to them when neeeded, just check out the code lol
-
-oh also really unsure as to why we need a thread for sending the messages? don't we need a thread for handling the messages, 
-not sending them? anyway let me know what you think. 
-
-much room for improvement but we are running out of time heh...
-
-users.txt = hardcoded path in the ChatServer to load users out of it. if you wanna parameterize it go right ahead haha.
-format:
-
-<username><single-space><password>
-
-plaintext ftw.
+1) Refreshing JLists work (gotta modify the associated DefaultListModel, easy enough heh); // fuck i just ended that line with ;, too much coding today rofl
+2) Seeing random exceptions on the server with StreamCorruption, seems to have no effect on functionality,
+more testing is probably required.
+3) Sending messages is broken at the moment. This is probably an easy fix but i'm sleeping now
+4) need to add having the IP of the user be displayed, this should be quite easy since we have the socket
+objects which contain it
