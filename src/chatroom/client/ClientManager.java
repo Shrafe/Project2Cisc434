@@ -116,6 +116,7 @@ public class ClientManager {
 			model.addElement(room);			
 		}
 		roomSelectionWindow.getRoomList().setModel(model);
+		roomSelectionWindow.getRoomList().validate();
 	}
 	
 	public void updateUserList(String[] users){
@@ -124,6 +125,7 @@ public class ClientManager {
 			model.addElement(user);
 		}
 		chatroomWindow.getUserList().setModel(model);
+		chatroomWindow.getUserList().validate();
 	}
 	
 	public void updateChatHistory(String message){

@@ -124,9 +124,8 @@ public class ChatroomWindow {
 		messageScrollPane.setViewportView(chatBox);
 		
 		this.chatHistory = new JTextArea();
-		chatHistory.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		chatHistory.setEnabled(false);
 		chatHistory.setEditable(false);
+		chatHistory.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		chatHistoryScroll.setViewportView(chatHistory);
 		
 		this.userList = new JList();
@@ -146,8 +145,12 @@ public class ChatroomWindow {
 			if (userList.getSelectedIndex() != -1) { // this is a whisper
 				// add list of targets. 1-inf selected
 				List<String> whisperList = client.makeList(userList.getSelectedValues());
-				whisperList.add(client.getUser()); // see our own whispers
-				message.addToPayload("(Whisper from "+client.getUser()+"): "+chatBox.getText()); 
+				if (whisperList.contains(client.getUser())){
+					//remove ourselves
+					whisperList.remove(client.getUser());
+				}
+				message.addToPayload(chatBox.getText()); // add the message
+				message.addToPayload(client.getUser()); // user its from
 				message.addToPayload(whisperList);
 				byte type = 4;
 				message.setType(type);
@@ -191,6 +194,7 @@ public class ChatroomWindow {
 				ioe.printStackTrace();
 			}
 			frmChattingIn.setVisible(false);
+			chatHistory.setText(""); // clear the chat history
 			client.roomSelectionWindow();
 		}
 	}

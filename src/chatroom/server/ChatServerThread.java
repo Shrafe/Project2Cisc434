@@ -75,6 +75,7 @@ public class ChatServerThread implements Runnable {
 				}
 			} catch (SocketException e) {
 				System.out.println("Client: "+socket+" disconnected.");
+				this.connected = false; // we're done
 				clientDisconnect();
 			}catch (IOException e) {
 				e.printStackTrace();
@@ -198,13 +199,15 @@ public class ChatServerThread implements Runnable {
 		// message he wants to send to the chatroom he's currently in. 
 		ArrayList<Object> payload = message.getPayload();
 		String msg = (String)payload.get(0);
+		String sender = null;
 		List<String> clients = null;
 		if (isWhisper){
 			// get the list of clients we should send to
-			clients = (List<String>) payload.get(1);
+			sender = (String) payload.get(1);
+			clients = (List<String>) payload.get(2);
 		}
 		System.out.println("Message received from user: "+this.username+" at: "+this.socket);
-		chatServer.chatRooms.get(this.crn).sendToClients(msg, clients);	
+		chatServer.chatRooms.get(this.crn).sendToClients(msg, sender, clients);	
 	}
 
 	/**
@@ -239,9 +242,9 @@ public class ChatServerThread implements Runnable {
 	 */
 
 	public void sendUsers() throws IOException{
-		MsgObj sendMessage = new MsgObj();
 		// dirty tricks: payload in MsgObj is of type Object; we can add the entire list at once. 
 		// do it and since we can tell the reciever what to do, we can be sure of the casting clientside
+		MsgObj sendMessage = new MsgObj();
 		sendMessage.addToPayload(this.chatServer.chatRooms.get(this.crn).getClientList());
 		byte type = 1; // argh really?
 		sendMessage.setType(type);
@@ -257,15 +260,10 @@ public class ChatServerThread implements Runnable {
 		try{
 			if (crn != null){ // leave the room if we're in one.
 				leaveRoom();
-			}
+			}			
 			oos.close();
 			ois.close(); // close our streams
 			socket.close(); // close the streams
-			this.connected = false; // we're done
-		} catch(IOException e){
-			e.printStackTrace();
-		} catch (ClassNotFoundException cnfe){
-			cnfe.printStackTrace();			
-		}
+		} catch(Exception e){} // swallow
 	}
 }
