@@ -29,7 +29,7 @@ public class Chatroom extends Thread implements Serializable{
 		clientNames = loadClientNames(clients.keySet());
 		updateUsers();
 	}
-	
+
 	public void removeClient(String clientName) {
 		clients.remove(clientName);
 		clientNames = loadClientNames(clients.keySet());
@@ -73,18 +73,24 @@ public class Chatroom extends Thread implements Serializable{
 			// need to modify message in this case
 			sendMessage.addToPayload("( Whisper from "+sender+" ): "+message);
 			String senderMessage = "( Whisper to ";
-			for (String client : whisperClients){
-				clients.get(client).writeObject(sendMessage);
-				senderMessage+=client+", ";
+			for (int i = 0; i < whisperClients.size(); i++){
+				clients.get(whisperClients.get(i)).writeObject(sendMessage);
+				if (i == (whisperClients.size() - 1)){ // it's the last one
+					senderMessage+=whisperClients.get(i);
+				}
+				else{
+					senderMessage+=whisperClients.get(i)+", ";
+				}				
 			}
 			// now we need to send another message with a different payload
 			sendMessage.getPayload().clear();
-			sendMessage.addToPayload(senderMessage+"): "+message);
+			sendMessage.addToPayload(senderMessage+" ): "+message);
 			clients.get(sender).writeObject(sendMessage); // send the whisper
 		}
 		else {
 			Set<String> keys = clients.keySet();
 			// this message isn't a whisper; send to all clients in the chatroom
+			sendMessage.addToPayload(sender+": "+message);
 			for (String client : keys){
 				clients.get(client).writeObject(sendMessage);
 			}

@@ -55,6 +55,7 @@ public class ChatroomWindow {
 	 */
 	private void initialize() {
 		frmChattingIn = new JFrame();
+//		frmChattingIn.addWindowListener(new DisconnectListener(this.client.getOos()));
 		frmChattingIn.setResizable(false);
 		frmChattingIn.setBounds(100, 100, 551, 395);
 		frmChattingIn.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -143,6 +144,8 @@ public class ChatroomWindow {
 		public void actionPerformed(ActionEvent e) {
 
 			MsgObj message = new MsgObj();	
+			message.addToPayload(chatBox.getText());
+			message.addToPayload(client.getUser());
 
 			if (userList.getSelectedIndex() != -1) { // this is a whisper
 				// add list of targets. 1-inf selected
@@ -150,16 +153,17 @@ public class ChatroomWindow {
 				if (whisperList.contains(client.getUser())){
 					//remove ourselves
 					whisperList.remove(client.getUser());
+					if (whisperList.isEmpty()){
+						//removing ourselves makes the list empty
+						whisperList = null; // null it
+					}
 				}
-				message.addToPayload(chatBox.getText()); // add the message
-				message.addToPayload(client.getUser()); // user its from
 				message.addToPayload(whisperList);
 				byte type = 4;
 				message.setType(type);
 			} else {
 				// Post to the room
 				byte type = 3;
-				message.addToPayload(client.getUser()+": "+chatBox.getText()); 
 				message.setType(type);
 			}
 			

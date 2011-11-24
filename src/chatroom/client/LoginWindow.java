@@ -16,6 +16,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JPasswordField;
 
 import chatroom.server.MsgObj;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class LoginWindow {
 
@@ -52,6 +54,7 @@ public class LoginWindow {
 	 */
 	private void initialize() {
 		frmBatChat = new JFrame();
+//		frmBatChat.addWindowListener(new DisconnectListener(this.client.getOos()));
 		frmBatChat.setTitle("BaT Chat");
 		frmBatChat.setForeground(SystemColor.textHighlight);
 		frmBatChat.setBackground(SystemColor.desktop);
@@ -179,10 +182,5 @@ public class LoginWindow {
 				ex.printStackTrace();
 			}
 		}
-	}
-	
-	
-	
-	
-	
+	}	
 }

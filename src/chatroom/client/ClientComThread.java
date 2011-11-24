@@ -37,9 +37,11 @@ public class ClientComThread extends Thread {
 		 * the getType in the MsgObj 
 		 * Case 0: Received a list of chatrooms 
 		 * Case 1: Received a list of users
-		 * Case 2: Received failed login attempt
+		 * Case 2: Received result of login attempt
 		 * Case 3: Received result of create user attempt 
 		 * Case 4: Received a message 
+		 * Case 5: received result of room creation attempt
+		 * Case 6: received result of room join attempt
 		 * 
 		 */
 
@@ -62,6 +64,12 @@ public class ClientComThread extends Thread {
 			case 4:
 				postMessage(message);
 				break;
+			case 5:
+				reportRoomCreationResult(message);
+				break;
+			case 6: 
+				reportRoomJoinResult(message);
+				break;
 			default: 
 				throw new IOException(); // barf. this means that getType is giving us invalid values
 			}
@@ -83,9 +91,8 @@ public class ClientComThread extends Thread {
 	 */
 	
 	private void updateChatroomList(MsgObj message){
-		// dirty tricks once again
 		client.updateRoomList((String[])message.getPayload().get(0));
-		client.getLatch().signal(); // signal the client to continue
+		//client.getLatch().signal(); // signal the client to continue
 	}
 	
 	/**
@@ -96,7 +103,7 @@ public class ClientComThread extends Thread {
 		// we know that the server sends us
 		// using the dirty tricks; first element is our list of users in String[] form;
 		client.updateUserList((String[])message.getPayload().get(0));
-		client.getLatch().signal(); // signal the client to continue
+		//client.getLatch().signal(); // signal the client to continue
 	}
 	
 	
@@ -112,6 +119,16 @@ public class ClientComThread extends Thread {
 	
 	private void postMessage(MsgObj message){
 		client.updateChatHistory((String)message.getPayload().get(0));
+	}
+	
+	private void reportRoomCreationResult(MsgObj message){
+		client.setRoomCreationSuccess((String)message.getPayload().get(0));
+		client.getLatch().signal();
+	}
+	
+	private void reportRoomJoinResult(MsgObj message){
+		client.setRoomJoinSuccess((String)message.getPayload().get(0));
+		client.getLatch().signal();
 	}
 	
 }

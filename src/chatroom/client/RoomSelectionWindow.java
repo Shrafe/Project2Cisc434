@@ -39,7 +39,7 @@ public class RoomSelectionWindow {
 	public DefaultListModel getRoomListModel(){
 		return roomListModel;
 	}
-	
+
 	public JLabel getTitle(){
 		return this.lblTitle;
 	}
@@ -49,18 +49,21 @@ public class RoomSelectionWindow {
 	 */
 	private void initialize() {
 		frmChatroom = new JFrame();
+//		frmChatroom.addWindowListener(new DisconnectListener(this.client.getOos()));
+		frmChatroom.setResizable(false);
 		frmChatroom.setTitle("Select");
-		frmChatroom.setBounds(100, 100, 207, 318);
+		frmChatroom.setBounds(100, 100, 208, 303);
 		frmChatroom.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
+
 		this.roomListModel = new DefaultListModel();
 		this.roomList = new JList(roomListModel);
 
-		JButton btnJoin = new JButton("Join / Create");
+		JButton btnJoin = new JButton("Join");
+		btnJoin.setToolTipText("Join the selected room. If no room is selected, a new room is created with a name given.");
 		btnJoin.addActionListener(new JoinListener());
 
-		JButton btnRefresh = new JButton("Refresh");
-		btnRefresh.addActionListener(new RefreshListener());
+		JButton btnRefresh = new JButton("Create");
+		btnRefresh.addActionListener(new CreateListener());
 
 		lblTitle = new JLabel();
 		GroupLayout groupLayout = new GroupLayout(frmChatroom.getContentPane());
@@ -69,12 +72,12 @@ public class RoomSelectionWindow {
 				.addGroup(groupLayout.createSequentialGroup()
 						.addContainerGap()
 						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-								.addComponent(roomList, GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
+								.addComponent(roomList, GroupLayout.DEFAULT_SIZE, 182, Short.MAX_VALUE)
 								.addGroup(groupLayout.createSequentialGroup()
-										.addComponent(btnJoin, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE)
-										.addPreferredGap(ComponentPlacement.RELATED)
-										.addComponent(btnRefresh))
-										.addComponent(lblTitle))
+										.addComponent(btnJoin, GroupLayout.PREFERRED_SIZE, 83, GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addComponent(btnRefresh, GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE))
+										.addComponent(lblTitle, GroupLayout.PREFERRED_SIZE, 122, GroupLayout.PREFERRED_SIZE))
 										.addContainerGap())
 				);
 		groupLayout.setVerticalGroup(
@@ -97,18 +100,29 @@ public class RoomSelectionWindow {
 	 * Listener for the Refresh button on the Chat Room
 	 * Selection window
 	 */
-	class RefreshListener implements ActionListener {
+	class CreateListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 
 			MsgObj message = new MsgObj();
 			byte type = 0;
 			message.setType(type);
-
-			try {
-				client.getOos().writeObject(message);
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+			String crn = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
+			if (crn!=null){ // if the user doesn't click cancel
+				try {
+					message.addToPayload(crn);
+					client.getOos().writeObject(message);
+					client.getLatch().await(); // wait for the result of our attempt to make the room
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				} catch (InterruptedException ie){
+					ie.printStackTrace();
+				}
+				if (client.getRoomCreationSuccess()){
+					JOptionPane.showMessageDialog(frmChatroom, "Your room named '"+crn+"' was created successfully.");
+				}
+				else {
+					JOptionPane.showMessageDialog(frmChatroom, "Room creation failed. There is already a room with this name.");
+				}
 			}
 		}
 	}
@@ -121,31 +135,38 @@ public class RoomSelectionWindow {
 		public void actionPerformed(ActionEvent e) {
 			String joinChatroom = null;
 			if (roomList.getSelectedIndex() == -1){
-				while (joinChatroom == null){
-					joinChatroom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to create:");
-				}
+				joinChatroom = JOptionPane.showInputDialog("Enter the name of the chatroom you wish to join:");
 			}
 			// Check that the user has selected a room
 			else {
 				// Set the local variable for chat room name
 				joinChatroom = (String)roomList.getSelectedValue();
 			}
-			MsgObj message = new MsgObj();
-			message.addToPayload(joinChatroom);
-			byte type = 2;
-			message.setType(type);
+			if (joinChatroom!=null){
+				MsgObj message = new MsgObj();
+				message.addToPayload(joinChatroom);
+				byte type = 2;
+				message.setType(type);
 
-			// Send the message
-			try {
-				client.getOos().writeObject(message);
-			} catch (IOException e1) {
-				e1.printStackTrace();
+				// Send the message
+				try {
+					client.getOos().writeObject(message);
+					client.getLatch().await();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				} catch (InterruptedException ie){
+					ie.printStackTrace();
+				}
+				// Launch the Chat Room window
+				// set us invisible
+				if (client.getRoomJoinSuccess()){
+					client.setRoom(joinChatroom);
+					frmChatroom.setVisible(false);
+					client.chatroomWindow();
+				} 
+				else
+					JOptionPane.showMessageDialog(frmChatroom, "Could not join the chatroom '"+joinChatroom+"'. It does not exist");
 			}
-			// Launch the Chat Room window
-			// set us invisible
-			client.setRoom(joinChatroom);
-			frmChatroom.setVisible(false);
-			client.chatroomWindow();
 		}
 	}
 }

@@ -23,6 +23,8 @@ public class ClientManager {
 	// in the communication handler
 	private boolean loginSuccess;
 	private boolean creationSuccess;
+	private boolean roomCreationSuccess;
+	private boolean roomJoinSuccess;
 
 	public ClientManager (String hostname, int port) {
 		try{
@@ -89,10 +91,7 @@ public class ClientManager {
 	}
 	
 	public void setLoginSuccess(String result){
-		if (result.equals("t"))
-			this.loginSuccess = true;
-		else
-			this.loginSuccess = false;
+		this.loginSuccess = evaluateTrueFalse(result);
 	}
 
 	public boolean getLoginSuccess(){
@@ -100,10 +99,7 @@ public class ClientManager {
 	}
 	
 	public void setCreationSuccess(String result){
-		if (result.equals("t"))
-			this.creationSuccess = true;
-		else
-			this.creationSuccess = false;
+		this.creationSuccess = evaluateTrueFalse(result);
 	}
 	
 	public boolean getCreationSuccess(){
@@ -130,16 +126,39 @@ public class ClientManager {
 	
 	public void setUser(String username){
 		this.user = username;
-		this.roomSelectionWindow.getTitle().setText("Logged in as "+user);
+		this.roomSelectionWindow.getTitle().setText("Logged in as '"+user+"'");
 	}
 	
 	public void setRoom(String roomname){
 		this.room = roomname;
-		this.chatroomWindow.getFrame().setTitle("Chatting in room "+room);
+		this.chatroomWindow.getFrame().setTitle("Chatting in room '"+room+"' as user '"+user+"'");
 	}
 	
 	public String getUser(){
 		return this.user;
+	}
+	
+	public void setRoomCreationSuccess(String result){
+		this.roomCreationSuccess = evaluateTrueFalse(result);
+	}
+	
+	public boolean getRoomCreationSuccess(){
+		return this.roomCreationSuccess;
+	}
+	
+	public void setRoomJoinSuccess(String result){
+		this.roomJoinSuccess = evaluateTrueFalse(result);
+	}
+	
+	public boolean getRoomJoinSuccess(){
+		return this.roomJoinSuccess;
+	}
+	
+	private boolean evaluateTrueFalse(String result){
+		if (result.equals("t"))
+			return true;
+		else
+			return false;
 	}
 	
 	public static void main(String args[]) {

@@ -54,4 +54,8 @@ public class MsgObj implements Serializable{
 	public ArrayList<Object> getPayload(){
 		return this.payload;
 	}
+	
+	public String toString(){
+		return "Message type="+msgType+" | Payload = "+payload;
+	}
 }

@@ -73,10 +73,19 @@ public class ChatServer {
 		}
 	}
 	// tell everyone about this moment!
-	public void createChatroom(String crn){
-		chatRooms.put(crn, new Chatroom(crn, this));
-		chatRoomNames = loadChatRoomNames();
-		updateChatrooms();
+	public boolean createChatroom(String crn){
+		boolean result = false;
+		if (!chatRooms.containsKey(crn)){
+			chatRooms.put(crn, new Chatroom(crn, this));
+			chatRoomNames = loadChatRoomNames();
+			updateChatrooms();
+			result = true;
+		}
+		else
+			result = false;
+		
+		
+		return result;
 	}
 
 	public void removeChatroom(String crn){
@@ -100,14 +109,18 @@ public class ChatServer {
 	}
 	
 
-	public void joinChatroom(String crn, ObjectOutputStream oos, String userName){
+	public boolean joinChatroom(String crn, ObjectOutputStream oos, String userName){
 		try{
-			if (!chatRooms.containsKey(crn))
-				createChatroom(crn);
-
-			chatRooms.get(crn).addClient(oos, userName);
+			Chatroom chatroom = chatRooms.get(crn);
+			if (chatroom != null){
+				chatRooms.get(crn).addClient(oos, userName);
+				return true;
+			}
+			else
+				return false;
 		} catch (Exception e){
 			e.printStackTrace();
+			return false;
 		}
 	}
 	
