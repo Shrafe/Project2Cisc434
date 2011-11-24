@@ -153,16 +153,13 @@ public class ChatroomWindow {
 					List<String> whisperList = client.makeList(userList.getSelectedValues());
 					for (String whisper : whisperList){
 						String [] extract = whisper.split(" ");
-						whisperList.remove(whisper);
-						whisperList.add(extract[0]);
+						if (extract[0].equals(client.getUser())){
+							whisperList.remove(whisper);
+						}
 					}
-					if (whisperList.contains(client.getUser())){
-						//remove ourselves
-						whisperList.remove(client.getUser());
-						if (whisperList.isEmpty()){
+					if (whisperList.isEmpty()){
 							//removing ourselves makes the list empty
 							whisperList = null; // null it
-						}
 					}
 					message.addToPayload(whisperList);
 					byte type = 4;
