@@ -1,4 +1,4 @@
-1) Refreshing JLists work (gotta modify the associated DefaultListModel, easy enough heh); // fuck i just ended that line with ;, too much coding today rofl
+1) Refreshing JLists work (gotta modify the associated DefaultListModel, easy enough heh); // i just ended that line with ;, too much coding today rofl
 2) Seeing random exceptions on the server with StreamCorruption, seems to have no effect on functionality,
 more testing is probably required.
 3) Sending messages is broken at the moment. This is probably an easy fix but i'm sleeping now
