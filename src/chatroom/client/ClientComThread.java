@@ -17,9 +17,9 @@ import chatroom.server.MsgObj;
  *
  */
 public class ClientComThread extends Thread {
-	ClientApp client; // we need to be able to call functions here
+	ClientManager client; // we need to be able to call functions here
 
-	public ClientComThread(ClientApp client){
+	public ClientComThread(ClientManager client){
 		this.client = client;
 	}
 
