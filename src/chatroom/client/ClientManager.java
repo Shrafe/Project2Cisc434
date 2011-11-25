@@ -71,14 +71,6 @@ public class ClientManager {
 	public void helpWindow(){
 		this.helpWindow.getFrame().setVisible(true);
 	}
-	
-	public List<String> makeList(Object[] in){
-		List<String> retVal = new ArrayList<String>();
-		for (Object a : in){
-			retVal.add((String)a);
-		}
-		return retVal;
-	}
 
 	public String charArrToString(char [] arr){
 		String result = "";

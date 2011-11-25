@@ -16,16 +16,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 
 import javax.swing.JScrollPane;
 
-import com.sun.corba.se.spi.orbutil.fsm.Action;
-
 import chatroom.server.MsgObj;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 
 public class ChatroomWindow {
 
@@ -135,7 +132,7 @@ public class ChatroomWindow {
 		this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("shift ENTER"), this.chatBox.getInputMap().get(KeyStroke.getKeyStroke("ENTER")));
 		this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "none");
 
-	//	this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("shift ENTER"),);
+		//	this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("shift ENTER"),);
 		chatBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		messageScrollPane.setViewportView(chatBox);
 
@@ -149,6 +146,22 @@ public class ChatroomWindow {
 		this.userList = new JList(userListModel);
 		userListScroll.setViewportView(userList);
 		frmChattingIn.getContentPane().setLayout(groupLayout);
+	}
+
+	/** 
+	 * Parse the stupid list!
+	 * @param in
+	 * @return
+	 */
+
+	public List<String> makeWhisperList(Object[] in){
+		List<String> retVal = new ArrayList<String>();
+		for (Object a : in){
+			String inter = (String)a;
+			String [] temp = inter.split(" ");
+			retVal.add(temp[0]);
+		}
+		return retVal;
 	}
 
 	/**
@@ -165,15 +178,10 @@ public class ChatroomWindow {
 
 				if (userList.getSelectedIndex() != -1) { // this is a whisper
 					// add list of targets. 1-inf selected
-					List<String> whisperList = client.makeList(userList.getSelectedValues());
-					try{
-						for (String whisper : whisperList){
-							String [] extract = whisper.split(" ");
-							if (extract[0].equals(client.getUser())){
-								whisperList.remove(whisper);
-							}
-						}
-					}catch (ConcurrentModificationException cme){} // swallow
+					List<String> whisperList = makeWhisperList(userList.getSelectedValues());
+					if (whisperList.contains(client.getUser())){
+						whisperList.remove(client.getUser());
+					}
 					if (whisperList.isEmpty()){
 						//removing ourselves makes the list empty
 						whisperList = null; // null it
