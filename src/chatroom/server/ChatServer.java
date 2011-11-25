@@ -25,13 +25,13 @@ public class ChatServer {
 	protected ArrayList<ObjectOutputStream> clients;
 	protected int port;
 
-	public ChatServer(int port) throws IOException{
+	public ChatServer(int port, String database) throws IOException{
 		this.port = port;
 		HashMap<String, Chatroom> chatRooms = new HashMap<String,Chatroom>();
 		this.chatRooms = chatRooms;
 		ArrayList<ObjectOutputStream> clients = new ArrayList<ObjectOutputStream>();
 		this.clients = clients;
-		HashMap<String, String> users = loadUsers();
+		HashMap<String, String> users = loadUsers(database);
 		this.userCredentials = users;
 		this.chatRoomNames = loadChatRoomNames();
 		acceptConnections();
@@ -39,8 +39,9 @@ public class ChatServer {
 
 	public static void main (String[] args){
 		int port = Integer.parseInt(args[0]);
+		String database = args[1];
 		try{
-			new ChatServer(port);
+			new ChatServer(port, database);
 		}catch(Exception e){
 			e.printStackTrace();
 			
@@ -167,11 +168,11 @@ public class ChatServer {
 	// thauser password
 	// bryce password
 
-	public HashMap<String,String> loadUsers(){
+	public HashMap<String,String> loadUsers(String database){
 		HashMap<String, String> returnVal = new HashMap<String,String>();
 		String input;
 		try{
-			BufferedReader userList = new BufferedReader(new FileReader("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
+			BufferedReader userList = new BufferedReader(new FileReader(database));
 			while((input = userList.readLine())!=null){
 				String[] values = input.split(" ");
 				returnVal.put(values[0], values[1]);
