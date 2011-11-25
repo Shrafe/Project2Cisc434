@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.ArrayList;
@@ -109,11 +110,11 @@ public class ChatServer {
 	}
 	
 
-	public boolean joinChatroom(String crn, ObjectOutputStream oos, String userName){
+	public boolean joinChatroom(String crn, ObjectOutputStream oos, String userName, InetAddress ip){
 		try{
 			Chatroom chatroom = chatRooms.get(crn);
 			if (chatroom != null){
-				chatRooms.get(crn).addClient(oos, userName);
+				chatRooms.get(crn).addClient(oos, userName, ip);
 				return true;
 			}
 			else

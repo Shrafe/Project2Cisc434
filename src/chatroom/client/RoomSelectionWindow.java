@@ -59,6 +59,8 @@ public class RoomSelectionWindow {
 		this.roomList = new JList(roomListModel);
 
 		JButton btnJoin = new JButton("Join");
+		frmChatroom.getRootPane().setDefaultButton(btnJoin);
+		btnJoin.requestFocusInWindow();
 		btnJoin.setToolTipText("Join the selected room. If no room is selected, a new room is created with a name given.");
 		btnJoin.addActionListener(new JoinListener());
 

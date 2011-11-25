@@ -7,6 +7,7 @@ import javax.swing.JOptionPane;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JList;
 import javax.swing.JLabel;
@@ -15,11 +16,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 
 import javax.swing.JScrollPane;
 
+import com.sun.corba.se.spi.orbutil.fsm.Action;
+
 import chatroom.server.MsgObj;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class ChatroomWindow {
 
@@ -55,6 +61,7 @@ public class ChatroomWindow {
 	 */
 	private void initialize() {
 		frmChattingIn = new JFrame();
+
 		//		frmChattingIn.addWindowListener(new DisconnectListener(this.client.getOos()));
 		frmChattingIn.setResizable(false);
 		frmChattingIn.setBounds(100, 100, 551, 395);
@@ -67,6 +74,8 @@ public class ChatroomWindow {
 		JScrollPane chatHistoryScroll = new JScrollPane();
 
 		JButton btnSend = new JButton("Send");
+		frmChattingIn.getRootPane().setDefaultButton(btnSend);
+		btnSend.requestFocusInWindow();
 		btnSend.setToolTipText("Send your message");
 		btnSend.addActionListener(new SendListener());
 
@@ -122,8 +131,14 @@ public class ChatroomWindow {
 				);
 
 		this.chatBox = new JTextArea();
+		// Change listeners around so that shift ENTER puts a new line, and we can use default button enter presses ;)
+		this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("shift ENTER"), this.chatBox.getInputMap().get(KeyStroke.getKeyStroke("ENTER")));
+		this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "none");
+
+	//	this.chatBox.getInputMap().put(KeyStroke.getKeyStroke("shift ENTER"),);
 		chatBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		messageScrollPane.setViewportView(chatBox);
+
 
 		this.chatHistory = new JTextArea();
 		chatHistory.setEditable(false);
@@ -144,22 +159,24 @@ public class ChatroomWindow {
 		public void actionPerformed(ActionEvent e) {
 
 			MsgObj message = new MsgObj();	
-			if (!chatBox.getText().equals("")){ //do nothing with an empty string
+			if (!chatBox.getText().trim().equals("")){ //do nothing with an empty string / only whitespace string
 				message.addToPayload(chatBox.getText());
 				message.addToPayload(client.getUser());
 
 				if (userList.getSelectedIndex() != -1) { // this is a whisper
 					// add list of targets. 1-inf selected
 					List<String> whisperList = client.makeList(userList.getSelectedValues());
-					for (String whisper : whisperList){
-						String [] extract = whisper.split(" ");
-						if (extract[0].equals(client.getUser())){
-							whisperList.remove(whisper);
+					try{
+						for (String whisper : whisperList){
+							String [] extract = whisper.split(" ");
+							if (extract[0].equals(client.getUser())){
+								whisperList.remove(whisper);
+							}
 						}
-					}
+					}catch (ConcurrentModificationException cme){} // swallow
 					if (whisperList.isEmpty()){
-							//removing ourselves makes the list empty
-							whisperList = null; // null it
+						//removing ourselves makes the list empty
+						whisperList = null; // null it
 					}
 					message.addToPayload(whisperList);
 					byte type = 4;

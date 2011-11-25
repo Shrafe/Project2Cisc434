@@ -3,15 +3,17 @@ package chatroom.server;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Chatroom extends Thread implements Serializable{
+public class Chatroom{
 	protected String name;
 	ChatServer server;
-	protected String[] clientNames; // array of HashMap keys, basically. quick sending to clients
+	protected HashSet<String> clientNames; // array of HashMap keys, basically. quick sending to clients
 	protected HashMap<String, ObjectOutputStream> clients; 
 	protected int numClients; 
 	protected int port;
@@ -20,22 +22,30 @@ public class Chatroom extends Thread implements Serializable{
 		this.name = name;
 		this.server = server;
 		clients = new HashMap<String,ObjectOutputStream>();
-		clientNames = loadClientNames(clients.keySet());
+		clientNames = new HashSet<String>();
 		this.numClients = 0;
 	}
 
-	public void addClient(ObjectOutputStream oos, String clientName){
+	public void addClient(ObjectOutputStream oos, String clientName, InetAddress ip){
 		clients.put(clientName, oos);
-		clientNames = loadClientNames(clients.keySet());
+		clientNames.add(clientName+" ("+ip.toString()+")");
 		updateUsers();
 	}
 
-	public void removeClient(String clientName) {
+	public void removeClient(String clientName, InetAddress ip) {
 		clients.remove(clientName);
-		clientNames = loadClientNames(clients.keySet());
+		clientNames.remove(clientName+" ("+ip.toString()+")");
 		updateUsers();
 	}
 
+	
+	private String[] objArrToStringArr(Object[] elements){
+		String [] returnVal = new String[elements.length];
+		for (int i = 0; i < returnVal.length; i++){
+			returnVal[i] = (String)elements[i];
+		}
+		return returnVal;
+	}
 	/** 
 	 * Method to send a user list every time a new user joins the chatroom
 	 * everyone needs to know this great news!
@@ -45,7 +55,7 @@ public class Chatroom extends Thread implements Serializable{
 		MsgObj message = new MsgObj();
 		byte type = 1;
 		message.setType(type);
-		message.addToPayload(clientNames);
+		message.addToPayload(objArrToStringArr(clientNames.toArray()));
 		Set<String> keys = clients.keySet();
 		for (String client : keys){
 			try{
@@ -99,7 +109,7 @@ public class Chatroom extends Thread implements Serializable{
 	}
 
 	public String[] getClientList() throws IOException{
-		return clientNames;
+		return (String[])clientNames.toArray();
 	}
 
 	public void removeConnection(Socket socket){
@@ -111,7 +121,7 @@ public class Chatroom extends Thread implements Serializable{
 		}
 		finally{
 			clients.remove(socket);
-			clientNames = loadClientNames(clients.keySet());
+			clientNames.remove(clients.keySet());
 		}
 	}
 

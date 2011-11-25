@@ -113,7 +113,7 @@ public class ChatServerThread implements Runnable {
 	 * method that nulls out the crn for this thread
 	 */
 	public void leaveRoom() throws IOException, ClassNotFoundException{
-		chatServer.chatRooms.get(this.crn).removeClient(this.username); // remove us from the chatroom so we don't get anymore messages from it
+		chatServer.chatRooms.get(this.crn).removeClient(this.username, this.socket.getInetAddress()); // remove us from the chatroom so we don't get anymore messages from it
 		this.crn = null; // null out CRN
 		sendChatrooms();
 	}
@@ -129,7 +129,7 @@ public class ChatServerThread implements Runnable {
 		MsgObj sendMessage = new MsgObj();
 		byte type = 6;
 		sendMessage.setType(type);
-		boolean success = chatServer.joinChatroom(crn, oos, this.username);
+		boolean success = chatServer.joinChatroom(crn, oos, this.username, this.socket.getInetAddress());
 		if (success){
 			sendMessage.addToPayload("t");
 			System.out.println("User "+username+" joined room: "+ crn);
@@ -183,7 +183,7 @@ public class ChatServerThread implements Runnable {
 		sendMessage.addToPayload(result);
 		oos.writeObject(sendMessage);
 		if (result.equals("t")){
-			this.username = checkUsername +" ("+this.ip+")";
+			this.username = checkUsername;
 			System.out.println("User: "+this.username+" validated successfully.");
 			sendChatrooms();
 		} else {
