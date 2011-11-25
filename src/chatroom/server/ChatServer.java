@@ -20,6 +20,7 @@ import java.util.Set;
 public class ChatServer {
 	protected ServerSocket serverSocket;
 	protected String[] chatRoomNames; // we keep this so we can quickly send a String array to the clients containing the names of chatrooms
+	protected String database;
 	protected HashMap<String, Chatroom> chatRooms;
 	protected HashMap<String, String> userCredentials;
 	protected ArrayList<ObjectOutputStream> clients;
@@ -31,7 +32,8 @@ public class ChatServer {
 		this.chatRooms = chatRooms;
 		ArrayList<ObjectOutputStream> clients = new ArrayList<ObjectOutputStream>();
 		this.clients = clients;
-		HashMap<String, String> users = loadUsers(database);
+		this.database = database;
+		HashMap<String, String> users = loadUsers(this.database);
 		this.userCredentials = users;
 		this.chatRoomNames = loadChatRoomNames();
 		acceptConnections();
@@ -153,7 +155,7 @@ public class ChatServer {
 		Set<String> keySet = this.userCredentials.keySet();
 		PrintWriter out = null;
 		try{
-			out = new PrintWriter(new FileWriter("C:\\Users\\TomW7\\workspace\\Project2Cisc434\\users.txt"));
+			out = new PrintWriter(new FileWriter(this.database));
 			for (String key : keySet){
 				out.println(key+" "+this.userCredentials.get(key));
 			}
